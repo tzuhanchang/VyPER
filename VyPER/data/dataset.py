@@ -2,6 +2,7 @@ import yaml
 import h5py
 import torch
 
+import numpy as np
 import numpy.lib.recfunctions as rf
 
 from torch import Tensor
@@ -80,6 +81,11 @@ class VyPERDataset(Dataset):
         for feat in self.node_input_names:
             assert config['input']['node_features']==list(self.file['INPUTS'][feat].dtype.names)
         assert config['input']['global_features']==list(self.file['INPUTS/GLOBAL'].dtype.names)
+
+        # Read METADATA
+        if 'METADATA' in self.file.keys():
+            for key, value in self.file['METADATA'].items():
+                setattr(self, f"METADATA_{key}", torch.tensor(np.array(value)))
 
         # Transformations
         self.node_transform_methods = [

@@ -8,12 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+ - Add `event_filter` option ([#2](https://github.com/tzuhanchang/VyPER/pull/2))
 
 ### Changed
 
 ### Removed
 
 ### Fixed
-
-### Changed
-

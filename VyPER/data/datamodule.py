@@ -1,7 +1,9 @@
+import torch
+
 from rich import get_console
 from rich.table import Table
 from lightning import LightningDataModule
-from torch.utils.data import random_split
+from torch.utils.data import Subset, random_split
 from torch_geometric.loader import DataLoader
 from typing import Optional
 
@@ -15,6 +17,7 @@ class VyPERDataModule(LightningDataModule):
         train_set: Optional[str]=None,
         val_set: Optional[str]=None,
         predict_set: Optional[str]=None,
+        event_filter: Optional[str]=None,
         batch_size: int=128,
         percent_train_samples: float=0.9,
         drop_last: bool=False,
@@ -28,6 +31,7 @@ class VyPERDataModule(LightningDataModule):
         self.train_set = train_set
         self.val_set = val_set
         self.predict_set = predict_set
+        self.event_filter = event_filter
         self.batch_size = batch_size
         self.percent_train_samples = percent_train_samples
         self.drop_last = drop_last
@@ -47,6 +51,10 @@ class VyPERDataModule(LightningDataModule):
     def setup(self, stage: str) -> None:
         if self.train_set is not None:
             if self.val_set is None or self.train_set == self.val_set:
+                if self.event_filter is not None:
+                    raise NotImplementedError("`event_filter` is currently not supported when"+\
+                                              " `val_set` is not provided.")
+
                 print("Creating validation set using "
                     +f"{round(1-self.percent_train_samples*100,2)}% of the file.")
 
@@ -72,7 +80,17 @@ class VyPERDataModule(LightningDataModule):
                     self.glob_in_channels = self.train_data.glob_in_channels
                     self.nu_out_channels  = self.train_data.nu_out_channels
                     self.nu_reverse_transform_methods = self.train_data.nu_reverse_transform_methods
-        
+
+                if self.event_filter is not None:
+                    self.train_data = Subset(
+                        self.train_data,
+                        torch.argwhere(getattr(self.train_data, self.event_filter)==1).flatten()
+                    )
+                    self.val_data = Subset(
+                        self.val_data,
+                        torch.argwhere(getattr(self.val_data, self.event_filter)==1).flatten()
+                    )
+
         else:
             raise RuntimeError("Training dataset not provided.")
         
