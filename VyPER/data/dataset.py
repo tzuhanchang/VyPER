@@ -1,5 +1,6 @@
 import yaml
 import h5py
+import math
 import torch
 
 import numpy as np
@@ -259,15 +260,17 @@ class VyPERDataset(Dataset):
         u = self.build_glob_attr(self.file['INPUTS'],index)
 
         if self._train_mode is False:
-            return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, u=u)
+            data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, u=u)
         else:
             neutrino_t = self.build_neutrino_target(self.file['LABELS'],index)
             node_cantor = self.get_node_cantor_id(self.file['LABELS'],index)
             edge_attr_t, edge_cantor = self.build_edge_target(node_cantor,edge_index)
             x_fw_mask, edge_fw_mask = self.get_masks(node_cantor, edge_cantor)
-            return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, u=u,
+            data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, u=u,
                         edge_attr_t=edge_attr_t, neutrino_t=neutrino_t,
                         x_fw_mask=x_fw_mask, edge_fw_mask=edge_fw_mask)
+
+        return self.transform(data)
 
     def __len__(self):
         return self.size

@@ -116,9 +116,9 @@ class VyPERDataModule(LightningDataModule):
         if self.train_data is not None:
             table.add_row("Training samples", str(len(self.train_data)))
         if self.val_data is not None:
-            table.add_row("Training samples", str(len(self.val_data)))
+            table.add_row("Validation samples", str(len(self.val_data)))
         if self.predict_data is not None:
-            table.add_row("Training samples", str(len(self.predict_data)))
+            table.add_row("Prediction samples", str(len(self.predict_data)))
         table.add_row("N node attributes", str(self.node_in_channels))
         table.add_row("N edge attributes", str(self.edge_in_channels))
         table.add_row("N glob attributes", str(self.glob_in_channels))
