@@ -1,7 +1,8 @@
 from .scatter import group_batch
-from .hist import log_histogram
+from .log import get_neutrino_p4, log_hist2D
 
 __all__ = [
     'group_batch',
-    'log_histogram',
+    'get_neutrino_p4',
+    'log_hist2D',
 ]

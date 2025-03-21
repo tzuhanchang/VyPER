@@ -3,13 +3,13 @@ import torch
 from torch import nn, optim
 from lightning import LightningModule
 from torch_geometric.utils import unbatch, degree, scatter
-from torch_hep.lorentz import MomentumTensor
+from torchmetrics.classification import BinaryAccuracy
 from typing import Optional
 
 from .mpnn import MPNNs
 from .diffusion import NeutrinoDiffusion
 from .loss import EdgeLoss, HyperedgeLoss, DiffusionLoss, CombinedLoss
-from VyPER.utils import log_histogram
+from VyPER.utils import get_neutrino_p4
 
 
 class VyPER(LightningModule):
@@ -58,6 +58,8 @@ class VyPER(LightningModule):
             num_sampling_steps=self.hparams.num_sampling_steps
         )
 
+        self.metric_edge = BinaryAccuracy(ignore_index=0)
+
     def forward(self, x, edge_index, edge_attr, u, batch, x_fw_mask, edge_fw_mask,
                 neutrino_t=None, train_mode=True, sampling=True):
         # Message-passing
@@ -88,13 +90,13 @@ class VyPER(LightningModule):
         return optimizer
 
     def training_step(self, train_batch, batch_idx):
-        edge_attr_out, nu_out, nu_batch = self.forward(
+        edge_attr_out, nu_loss, nu_batch = self.forward(
             train_batch.x, train_batch.edge_index, train_batch.edge_attr, train_batch.u,
             train_batch.batch, train_batch.x_fw_mask, train_batch.edge_fw_mask,
             train_batch.neutrino_t, train_mode=True, sampling=False)
         
         edge_loss = EdgeLoss(edge_attr_out, train_batch.edge_attr_t, train_batch.edge_attr_batch)
-        nu_loss = DiffusionLoss(nu_out, nu_batch)
+        nu_loss = DiffusionLoss(nu_loss, nu_batch, reduction='sum')
         loss = CombinedLoss(edge_loss, nu_loss, reduction=self.hparams.reduction)
 
         # Logging
@@ -104,19 +106,27 @@ class VyPER(LightningModule):
                  on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
         self.log('loss/train_loss', loss, batch_size=len(train_batch), on_step=True, on_epoch=True,
                  prog_bar=True, logger=True, sync_dist=True)
-
         return loss
 
     def validation_step(self, val_batch, batch_idx):
-        edge_attr_out, nu_out, nu_batch = self.forward(
-            val_batch.x, val_batch.edge_index, val_batch.edge_attr, val_batch.u,
-            val_batch.batch, val_batch.x_fw_mask, val_batch.edge_fw_mask,
-            val_batch.neutrino_t, train_mode=True, sampling=True)
-        nu_loss, nu = nu_out
+        final_val_batch_idx = len(self.trainer.datamodule.val_dataloader()) - 1
+        if batch_idx == final_val_batch_idx:
+            edge_attr_out, nu_out, nu_batch = self.forward(
+                val_batch.x, val_batch.edge_index, val_batch.edge_attr, val_batch.u,
+                val_batch.batch, val_batch.x_fw_mask, val_batch.edge_fw_mask,
+                val_batch.neutrino_t, train_mode=True, sampling=True)
+            nu_loss, nu_out = nu_out
+        else:
+            edge_attr_out, nu_loss, nu_batch = self.forward(
+                val_batch.x, val_batch.edge_index, val_batch.edge_attr, val_batch.u,
+                val_batch.batch, val_batch.x_fw_mask, val_batch.edge_fw_mask,
+                val_batch.neutrino_t, train_mode=True, sampling=False)
 
         edge_loss = EdgeLoss(edge_attr_out, val_batch.edge_attr_t, val_batch.edge_attr_batch)
-        nu_loss = DiffusionLoss(nu_loss, nu_batch)
+        nu_loss = DiffusionLoss(nu_loss, nu_batch, reduction='sum')
         loss = CombinedLoss(edge_loss, nu_loss, reduction=self.hparams.reduction)
+
+        edge_accuracy = self.metric_edge(edge_attr_out.flatten(), val_batch.edge_attr_t.float().flatten())
 
         # Logging
         self.log('loss/validation_edge_loss', edge_loss.mean(), batch_size=len(val_batch),
@@ -125,24 +135,16 @@ class VyPER(LightningModule):
                  on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
         self.log('loss/validation_loss', loss, batch_size=len(val_batch), on_step=True, on_epoch=True,
                  prog_bar=True, logger=True, sync_dist=True)
+        self.log('accuracy/edge', edge_accuracy, batch_size=len(val_batch), on_step=False, on_epoch=True,
+                 prog_bar=False, logger=True, sync_dist=True)
 
-        with torch.no_grad():
-            for column in range(nu.size(1)):
-                nu[:,column] = self.trainer.datamodule.nu_reverse_transform_methods[column](nu[:,column])
-
-            nu_e = torch.sqrt(nu[:,0]**2+nu[:,1]**2+nu[:,2]**2)
-            nu_p4 = MomentumTensor(torch.cat([nu_e.view(-1,1), nu[:,0].view(-1,1),
-                                              nu[:,1].view(-1,1),nu[:,2].view(-1,1)], dim=1))
-
-            # nu_t = val_batch.neutrino_t
-            # for column in range(nu_t.size(1)):
-            #     nu_t[:,column] = self.trainer.datamodule.nu_reverse_transform_methods[column](nu_t[:,column])
-
-        tensorboard = self.logger.experiment
-        tensorboard.add_histogram('histograms/px', nu[:,0], global_step=self.current_epoch)
-        tensorboard.add_histogram('histograms/py', nu[:,1], global_step=self.current_epoch)
-        tensorboard.add_histogram('histograms/pz', nu[:,2], global_step=self.current_epoch)
-        tensorboard.add_histogram('histograms/e', nu_p4.e, global_step=self.current_epoch)
-        tensorboard.add_histogram('histograms/eta', nu_p4.eta, global_step=self.current_epoch)
-        tensorboard.add_histogram('histograms/phi', nu_p4.phi, global_step=self.current_epoch)
-        tensorboard.add_histogram('histograms/pt', nu_p4.pt, global_step=self.current_epoch)
+        if batch_idx == final_val_batch_idx:
+            p = get_neutrino_p4(nu_out, self.trainer.datamodule.nu_reverse_transform_methods)
+            tensorboard = self.logger.experiment
+            tensorboard.add_histogram('histograms/px', p.px, global_step=self.current_epoch)
+            tensorboard.add_histogram('histograms/py', p.py, global_step=self.current_epoch)
+            tensorboard.add_histogram('histograms/pz', p.pz, global_step=self.current_epoch)
+            tensorboard.add_histogram('histograms/e', p.e, global_step=self.current_epoch)
+            tensorboard.add_histogram('histograms/eta', p.eta, global_step=self.current_epoch)
+            tensorboard.add_histogram('histograms/phi', p.phi, global_step=self.current_epoch)
+            tensorboard.add_histogram('histograms/pt', p.pt, global_step=self.current_epoch)
