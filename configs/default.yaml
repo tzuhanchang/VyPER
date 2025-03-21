@@ -2,7 +2,7 @@ datasets:
   train_set:        null
   val_set:          null
   predict_set:      null
-  event_filter:     METADATA_FullyMatched
+  event_filter:     null
   train_val_split:  0.9
   drop_last:        true
 
