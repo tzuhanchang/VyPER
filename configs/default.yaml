@@ -4,7 +4,7 @@ datasets:
   predict_set:      null
   event_filter:     null
   train_val_split:  0.9
-  drop_last:        false
+  drop_last:        true
 
 network:
   message_feats:      64
@@ -22,7 +22,8 @@ training:
   dropout:            0.01
   gradient_clip:      1.
   epochs:             500
-  batch_size:         512
+  batch_size:         4096
+  grad_accum_batches: 1
   patience:           10
   save_directory:     logs
   continue_from_ckpt: null
@@ -93,30 +94,30 @@ input:
 target:
   edge:
     bl:
-      - ['0-1','1-2'] # b el+
-      - ['0-1','2-2'] # b mu+
-      - ['0-4','1-1'] # bbar el-
-      - ['0-4','2-1'] # bbar el-
+      - ['0-1','1-1'] # b el+
+      - ['0-1','2-1'] # b mu+
+      - ['0-4','1-2'] # bbar el-
+      - ['0-4','2-2'] # bbar el-
 
   neutrinos:
     node_label: 3
     associated_nodes:
-      - 1-2 # el+
-      - 2-2 # mu+
-      - 1-1 # el-
-      - 2-1 # mu-
+      - 1-2 # el-
+      - 2-2 # mu-
+      - 1-1 # el+
+      - 2-1 # mu+
     features:
       - px
       - py
       - pz
     transforms:
-      - (x-0.0272) / 50.8952
-      - (x+0.0565) / 51.0338
-      - (x+0.1509) / 161.8951
+      - (x + 0.0179) / 53.3342
+      - (x + 0.0069) / 53.3252
+      - (x + 0.0306) / 160.5729
     reverse_transforms:
-      - x * 50.8952 + 0.0272
-      - x * 51.0338 - 0.0565
-      - x * 161.8951 - 0.1509
+      - x * 53.3342 - 0.0179
+      - x * 53.3252 - 0.0069
+      - x * 160.5729 - 0.0306
   
   hyperedge:
     top:

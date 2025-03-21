@@ -39,6 +39,7 @@ def Train(cfg : DictConfig) -> None:
         train_set = cfg['datasets']['train_set'],
         val_set = cfg['datasets']['val_set'],
         predict_set = None,
+        event_filter = cfg['datasets']['event_filter'],
         batch_size = cfg['training']['batch_size'],
         percent_train_samples = cfg['datasets']['train_val_split'],
         drop_last = cfg['datasets']['drop_last'],
@@ -84,7 +85,7 @@ def Train(cfg : DictConfig) -> None:
         LearningRateMonitor(),
         DeviceStatsMonitor(),
         RichProgressBar() if _RICH_AVAILABLE else TQDMProgressBar(),
-        RichModelSummary(max_depth=1) if _RICH_AVAILABLE else ModelSummary(max_depth=1)
+        RichModelSummary(max_depth=2) if _RICH_AVAILABLE else ModelSummary(max_depth=2)
     ]
 
     trainer = pl.Trainer(
@@ -93,6 +94,7 @@ def Train(cfg : DictConfig) -> None:
         max_epochs = cfg['training']['epochs'],
         callbacks = callbacks,
         gradient_clip_val = cfg['training']['gradient_clip'],
+        accumulate_grad_batches = cfg['training']['grad_accum_batches'],
         logger = TensorBoardLogger(save_dir=cfg['training']['save_directory'], name="", log_graph=True)
     )
 
