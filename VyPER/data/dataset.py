@@ -16,10 +16,10 @@ from .transform import TransformFeatures
 
 
 class VyPERDataset(Dataset):
-    def __init__(self, root: str, config: str, mode: str='train') -> None:
+    def __init__(self, root: str, config: str, training: bool=True) -> None:
         self.root = root
         self.config = config
-        self._train_mode = True if mode.lower()=='train' else False
+        self._train_mode = training
 
         config = self._parse_config_file(self.config)
         self.node_input_names = list(config['input']['nodes'].keys())
@@ -204,29 +204,27 @@ class VyPERDataset(Dataset):
         k1, k2 = inputs[mask,:].transpose(0,1)
         return self._cantor_pairing(k1, k2)
 
-    def build_edge_target(self, node_cantor_id: Tensor,
-                          edge_index: Tensor) -> Tuple[Tensor,Tensor]:
+    def build_edge_target(self, edge_cantor_id: Tensor,
+                          edge_index: Tensor) -> Tensor:
         r"""Construct edge target tensor according to the edge targets
         defined in the configuration file. Searching for edges that have
         matched targeting edge Cantor IDs.
         Returning edge target tensor and edge Cantor.
 
         Args:
-            node_cantor_id (Tensor): Node Cantor IDs.
+            edge_cantor_id (Tensor): Edge Cantor IDs.
             edge_index (Tensor): Edge index tensor.
 
-        :rtype: :class:`Tuple[Tensor,Tensor]`
+        :rtype: :class:`Tensor`
         """
-        edge_cantor = torch.cat([node_cantor_id[edge_index[0]].unsqueeze(0),
-                                      node_cantor_id[edge_index[1]].unsqueeze(0)])
-        edge_search = edge_cantor.unsqueeze(2)
+        edge_search = edge_cantor_id.unsqueeze(2)
         cantor_id = self.target_edge_cantor.unsqueeze(1)
         cantor_id_flip = self.target_edge_cantor.flip(0).unsqueeze(1)
         matches = torch.all(edge_search==cantor_id,dim=0) | torch.all(edge_search==cantor_id_flip, dim=0)
         indices = matches.nonzero()[:,0]
         edge_attr_t = torch.zeros((edge_index.size(1),1),dtype=torch.float32)
         edge_attr_t[indices] = 1
-        return edge_attr_t, edge_cantor
+        return edge_attr_t
 
     def build_neutrino_target(self, LABELS: h5py._hl.group.Group, index: int) -> Tensor:
         nu = torch.tensor(rf.structured_to_unstructured(LABELS['NEUTRINO'][index]),
@@ -259,13 +257,17 @@ class VyPERDataset(Dataset):
         edge_index, edge_attr = self.build_edge_attr(x)
         u = self.build_glob_attr(self.file['INPUTS'],index)
 
+        node_cantor = self.get_node_cantor_id(self.file['LABELS'],index)
+        edge_cantor = torch.cat([node_cantor[edge_index[0]].unsqueeze(0),
+                                 node_cantor[edge_index[1]].unsqueeze(0)])
+        x_fw_mask, edge_fw_mask = self.get_masks(node_cantor, edge_cantor)
+
         if self._train_mode is False:
-            data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, u=u)
+            data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, u=u,
+                        x_fw_mask=x_fw_mask, edge_fw_mask=edge_fw_mask)
         else:
             neutrino_t = self.build_neutrino_target(self.file['LABELS'],index)
-            node_cantor = self.get_node_cantor_id(self.file['LABELS'],index)
-            edge_attr_t, edge_cantor = self.build_edge_target(node_cantor,edge_index)
-            x_fw_mask, edge_fw_mask = self.get_masks(node_cantor, edge_cantor)
+            edge_attr_t = self.build_edge_target(edge_cantor, edge_index)
             data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, u=u,
                         edge_attr_t=edge_attr_t, neutrino_t=neutrino_t,
                         x_fw_mask=x_fw_mask, edge_fw_mask=edge_fw_mask)
