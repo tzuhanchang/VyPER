@@ -58,7 +58,7 @@ class VyPERDataModule(LightningDataModule):
                 print("Creating validation set using "
                     +f"{round(1-self.percent_train_samples*100,2)}% of the file.")
 
-                data = VyPERDataset(root=self.train_set, config=self.config, mode='train')
+                data = VyPERDataset(root=self.train_set, config=self.config, training=True)
 
                 self.node_in_channels = data.node_in_channels
                 self.edge_in_channels = data.edge_in_channels
@@ -71,8 +71,8 @@ class VyPERDataModule(LightningDataModule):
                     [self.percent_train_samples, 1-self.percent_train_samples])
                 del data
             else:
-                self.train_data = VyPERDataset(root=self.train_set, config=self.config, mode='train')
-                self.val_data = VyPERDataset(root=self.val_set, config=self.config, mode='train')
+                self.train_data = VyPERDataset(root=self.train_set, config=self.config, training=True)
+                self.val_data = VyPERDataset(root=self.val_set, config=self.config, training=True)
 
                 if self.node_in_channels is None:
                     self.node_in_channels = self.train_data.node_in_channels
@@ -91,11 +91,8 @@ class VyPERDataModule(LightningDataModule):
                         torch.argwhere(getattr(self.val_data, self.event_filter)==1).flatten()
                     )
 
-        else:
-            raise RuntimeError("Training dataset not provided.")
-        
         if self.predict_set is not None:
-            self.predict_data = VyPERDataset(root=self.predict_set, config=self.config, mode='eval')
+            self.predict_data = VyPERDataset(root=self.predict_set, config=self.config, training=False)
 
             if self.node_in_channels is None:
                 self.node_in_channels = self.predict_data.node_in_channels
