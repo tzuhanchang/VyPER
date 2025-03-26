@@ -1,10 +1,10 @@
 Configuration File Reference
 =======================
 
-Dataset, network architecture, training and predicting are configured with a `.yaml` configuration file.
+Dataset, network architecture, training, and predicting are configured with a `.yaml` configuration file.
 
 You could create your configuration files and place them in the `configs` directory.
-You can load your customized configuration files using `--config-name` argument, for example:
+You can load your customized configuration files using the `--config-name` argument, for example:
 ```
 python -m HyPER.train --config-name=my_config
 ```
@@ -102,20 +102,20 @@ Required for prediction.
 
 Name of a boolean vector saved in the dataset, e.g. `METADATA_FullyMatched`.
 
-As the result, VyPER will only use the events which are marked true in the `METADATA/FullyMatched` vector.
+As a result, VyPER will only use the events marked true in the `METADATA/FullyMatched` vector.
 
 
 ### datasets.train_val_split
 
-The training/validation ratio is used to split `train_set` into a training and validation dataset.
+The training/validation ratio splits `train_set` into a training and validation dataset.
 
 This option only becomes active when only the `train_set` is provided.
 
 
 ### datasets.drop_last
 
-Set to True to drop the last incomplete batch, if the dataset size is not divisible by the batch size.
-If False and the size of dataset is not divisible by the batch size, then the last batch will be smaller.
+Set to `True` to drop the last incomplete batch, if the dataset size is not divisible by the batch size.
+If `False` and the size of the dataset is not divisible by the batch size, then the last batch will be smaller.
 
 
 ## network
@@ -207,7 +207,7 @@ Set to `0` to have no gradient clipping.
 
 Maximum number of epochs.
 
-The training can be terminated before reaching the maximum number of epochs due to the implementation of the early stopping, see [training.patience](#trainingpatience).
+Training can be terminated before reaching the maximum number of epochs due to the implementation of the early stopping, see [training.patience](#trainingpatience).
 
 
 ### training.batch_size
@@ -238,7 +238,7 @@ Location where the training states are saved.
 
 Path where the training state is loaded and continuing training.
 
-Set to `null` to not load any checkpoints, start a new training.
+Set to `null` not loading any checkpoints, and start a new training.
 
 
 ## device
@@ -261,10 +261,10 @@ Number of CPU or GPU devices to be used for training or prediction.
 
 ### device.num_workers
 
-How many subprocesses to use for data loading.
+Number of subprocesses to use for data loading.
 
 Set to `0` means that the data will be loaded in the main process.
-A good starting point is to set it to the number of CPU cores on the machine. However, the larger the `num_workers`, the more CPU memory will be consumed.
+A good starting point is to set it to the number of CPU cores on the machine. However, the larger the `num_workers`, the more CPU memory consumed.
 
 
 
@@ -281,7 +281,7 @@ This section will use the sample $t\bar{t}$ dilepton final-state dataset as an e
 
     * [input.nodes](#inputnodes)
     * [input.node_features](#inputnode_features)
-    * [input.node_4vector_defination](#inputnode_4vector_defination)
+    * [input.node_4vector_definition](#inputnode_4vector_definition)
     * [input.node_transforms](#inputnode_transforms)
     * [input.edge_features](#inputedge_features)
     * [input.edge_transforms](#inputedge_transforms)
@@ -311,7 +311,7 @@ input:
   ...
 ```
 Names of the final-state objects stored in the `INPUTS` data group will be used as nodes.
-Integers associated with each object is an user assigned ID used for node type identification.
+The integer associated with each object is a user-assigned ID used for node type identification.
 
 
 ### input.node_features
@@ -333,12 +333,12 @@ Node input features.
 These should match the `dtype.names` of the `INPUTS/JET`, `INPUTS/ELECTRON` and `INPUTS/MUON` datasets.
 
 
-### input.node_4vector_defination
+### input.node_4vector_definition
 
 ```yaml
 input:
   ...
-  node_4vector_defination:
+  node_4vector_definition:
     functional: MomentumTensor.EEtaPhiPt
     ordered_inputs:
       - e
@@ -347,7 +347,7 @@ input:
       - pt
   ...
 ```
-Node four-momentum defination.
+Node four-momentum definition.
 
 Node four-momentum is defined using the class set in `functional`.
 This class is initiated with an ordered set of node features, defined in `ordered_inputs`.
@@ -387,8 +387,8 @@ input:
 ```
 Edge input features.
 
-Edge features are computed using the four-momentum of its endpoint-nodes (`e1` and `e2`).
-Please check the class methods of the `functional` in [input.node_4vector_defination](#inputnode_4vector_defination).
+Edge features are computed using the four-momentum of its endpoint nodes (`e1` and `e2`).
+Please check the class methods of the `functional` in [input.node_4vector_definition](#inputnode_4vector_definition).
 
 
 ### input.edge_transforms
@@ -450,13 +450,13 @@ These methods are arranged in the same order as [input.global_features](#inputgl
 
 ## target
 
-Dataset configurations for training targets.
+Dataset configurations for targets.
 
-In the following sections, you will encounter representations where two integers seperated by a hyphen, such as `'0-1'`.
-These are refered as "object labels".
-The first integer refers to object ID defined in [input.nodes](#inputnodes).
+In the following sections, you will encounter representations where two integers are separated by a hyphen, such as `'0-1'`.
+These are referred to as "object labels".
+The first integer refers to the object ID defined in [input.nodes](#inputnodes).
 The second integer is the final-state truth label.
-In the sample $t\bar{t}$ dilepton final-state dataset, the final states are labelled in the following way:
+In the sample $t\bar{t}$ dilepton final-state dataset, the final states are labeled in the following way:
 
 `LABELS/JET`:
 | | $b$ | $\bar{b}$ | Other | 
@@ -485,7 +485,7 @@ target:
     ...
   ...
 ```
-Definations of target edges.
+Definitions of target edges.
 
 Each target edge is represented as a list containing two endpoint-nodes of the edge. `bl` is the class name, currently only one edge class is supported.
 
@@ -516,9 +516,9 @@ target:
       - x * 160.5729 - 0.0306
   ...
 ```
-Definations of target neutrinos.
+Definitions of target neutrinos.
 
-`node_label`: an integer assigned to the reconstructed neutrino nodes to be used for node type identification.
+`node_label`: an integer assigned to the reconstructed neutrino nodes for node type identification.
 
 `features`: neutrino target features. These should match the `dtype.names` of the `LABELS/NEUTRINO` datasets.
 
@@ -542,6 +542,6 @@ target:
       - ['0-2','2-1','3-2-1']
   ...
 ```
-Definations of target hyperedges.
+Definitions of target hyperedges.
 
-Each target hyperedge is represented as a list containing three or more nodes. `top` is the class name, currently only one hyperedge class is supported.
+Each target hyperedge is represented as a list containing three or more nodes. `top` is the class name; currently, only one hyperedge class is supported.
