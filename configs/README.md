@@ -10,6 +10,11 @@ python -m HyPER.train --config-name=my_config
 ```
 To learn more about VyPER's configuration framework, check out [Hydra](https://hydra.cc/docs/intro/#basic-example).
 
+The configuration file is divided into two sections:
+
+- [Common settings](#common-settings)
+- [Dataset-dependent settings](#dataset-dependent-settings)
+
 
 Common settings
 ------------------
