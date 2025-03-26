@@ -28,6 +28,12 @@ training:
   save_directory:     logs
   continue_from_ckpt: null
 
+predicting:
+  model_directory:    logs/version_0
+  batch_size:         4096
+  edge_reduction:     mean
+  save_as:            ./output.h5
+
 device:
   accelerator:        gpu
   num_devices:        1
