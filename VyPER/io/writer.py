@@ -33,17 +33,17 @@ class PredictionWriter(BasePredictionWriter):
         self.output_file = h5py.File(self.output_dir, mode='w')
 
     def prepare_output_file(self) -> None:
-        raw_group = self.output_file.create_group('VyPER')
+        data_group = self.output_file.create_group('VyPER')
 
         index_dtype = h5py.vlen_dtype(np.dtype('int64'))
         value_dtype = h5py.vlen_dtype(np.dtype('float32'))
 
-        self.edge_index = raw_group.create_dataset(
+        self.edge_index = data_group.create_dataset(
             "EdgeIndex", (self.num_pred_events,2,),dtype=index_dtype)
-        self.edge_out = raw_group.create_dataset(
+        self.edge_out = data_group.create_dataset(
             "EdgeSoftP", (self.num_pred_events,1,), dtype=value_dtype)
             # TODO: This need to be updated for multiclass 
-        self.neutrino_out = raw_group.create_dataset(
+        self.neutrino_out = data_group.create_dataset(
             "Neutrino", (self.num_pred_events,2,), dtype=value_dtype)
             # TODO: This need to be updated for different neutrino count
 
