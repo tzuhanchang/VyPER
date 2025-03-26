@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+ - Add prediction functionality ([#9](https://github.com/tzuhanchang/VyPER/pull/9))
  - Add configuration file reference ([#8](https://github.com/tzuhanchang/VyPER/pull/8))
  - Add `conda` environment files ([#5](https://github.com/tzuhanchang/VyPER/pull/5))
  - Fix input data not being transformed/scaled ([#3](https://github.com/tzuhanchang/VyPER/pull/3))

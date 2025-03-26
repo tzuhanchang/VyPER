@@ -2,7 +2,7 @@ import torch
 
 from torch import nn, optim
 from lightning import LightningModule
-from torch_geometric.utils import unbatch, degree, scatter
+from torch_geometric.utils import scatter, unbatch, unbatch_edge_index
 from torchmetrics.classification import BinaryAccuracy
 from typing import Optional
 
@@ -148,3 +148,18 @@ class VyPER(LightningModule):
             tensorboard.add_histogram('histograms/eta', p.eta, global_step=self.current_epoch)
             tensorboard.add_histogram('histograms/phi', p.phi, global_step=self.current_epoch)
             tensorboard.add_histogram('histograms/pt', p.pt, global_step=self.current_epoch)
+
+    def predict_step(self, pred_batch, batch_idx, dataloader_idx=0):
+        edge_attr_out, nu_out, nu_batch = self.forward(
+            pred_batch.x, pred_batch.edge_index, pred_batch.edge_attr, pred_batch.u,
+            pred_batch.batch, pred_batch.x_fw_mask, pred_batch.edge_fw_mask,
+            neutrino_t=None, train_mode=False, sampling=True)
+
+        for column in range(nu_out.size(1)):
+            nu_out[:,column] = self.trainer.datamodule.nu_reverse_transform_methods[column](nu_out[:,column])
+
+        edge_out = unbatch(edge_attr_out, pred_batch.edge_attr_batch, dim=0)
+        edge_index = unbatch_edge_index(pred_batch.edge_index, pred_batch.batch,
+                                        batch_size=self.trainer.datamodule.batch_size)
+        nu_out = unbatch(nu_out, nu_batch, dim=0)
+        return edge_out, edge_index, nu_out
