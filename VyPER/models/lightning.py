@@ -29,6 +29,7 @@ class VyPER(LightningModule):
         optimizer: str = "Adam",
         lr: float = 1e-3,
         alpha: float = 0.5,
+        eta: float = 0.5,
         reduction: float = 'mean'
     ) -> None:
 
@@ -97,7 +98,7 @@ class VyPER(LightningModule):
         
         edge_loss = EdgeLoss(edge_attr_out, train_batch.edge_attr_t, train_batch.edge_attr_batch)
         nu_loss = DiffusionLoss(nu_loss, nu_batch, reduction='sum')
-        loss = CombinedLoss(edge_loss, nu_loss, reduction=self.hparams.reduction)
+        loss = CombinedLoss(edge_loss, nu_loss, reduction=self.hparams.reduction, eta=self.hparams.eta)
 
         # Logging
         self.log('loss/train_edge_loss', edge_loss.mean(), batch_size=len(train_batch),
@@ -124,7 +125,7 @@ class VyPER(LightningModule):
 
         edge_loss = EdgeLoss(edge_attr_out, val_batch.edge_attr_t, val_batch.edge_attr_batch)
         nu_loss = DiffusionLoss(nu_loss, nu_batch, reduction='sum')
-        loss = CombinedLoss(edge_loss, nu_loss, reduction=self.hparams.reduction)
+        loss = CombinedLoss(edge_loss, nu_loss, reduction=self.hparams.reduction, eta=self.hparams.eta)
 
         edge_accuracy = self.metric_edge(edge_attr_out.flatten(), val_batch.edge_attr_t.float().flatten())
 

@@ -55,14 +55,15 @@ def DiffusionLoss(nu_loss: Tensor, nu_batch: Tensor, reduction: str='mean') -> T
 
 def CombinedLoss(edge_loss: Tensor, nu_loss: Tensor, #hyperedge_loss: Tensor
                  hyperedge_loss_mask: Optional[Tensor]=None,
-                 alpha: float=0.5, reduction='mean') -> Tensor:
+                 alpha: float=0.5, eta: float=0.5, reduction='mean') -> Tensor:
     r"""Get combined loss.
 
     Args:
         egde_loss (Tensor): edge loss.
         nu_loss (Tensor): diffusion loss.
         hyperedge_loss (Tensor): hyperedge loss.
-        alpha (optional: Tensor): hyperedge loss weight (default: 0.5)
+        alpha (optional: Tensor): hyperedge loss weight. (default: 0.5)
+        eta (optional: Tensor): diffusion loss weight. (default: 0.5)
         reduction (optional: str): the reduce operation (default: 'mean').
 
     :rtype: :class:`Tensor`
@@ -77,7 +78,7 @@ def CombinedLoss(edge_loss: Tensor, nu_loss: Tensor, #hyperedge_loss: Tensor
         #     alpha = torch.scatter(torch.zeros(loss_shape, device=device), 0, loss_hyperedge_masks.nonzero().flatten(), alpha)
 
     # l = ( alpha * loss_hyperedge ) + ( (1-alpha) * loss_edge )
-    l = edge_loss + nu_loss
+    l = eta * nu_loss + (1-eta) * edge_loss
 
     if reduction == 'mean':
         rd = torch.mean
