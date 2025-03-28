@@ -49,6 +49,7 @@ overwrites the default [training.learning_rate](#traininglearning_rate) to `0.00
     * [training.optimizer](#trainingoptimizer)
     * [training.loss_reduction](#trainingloss_reduction)
     * [training.alpha](#trainingalpha)
+    * [training.eta](#trainingeta)
     * [training.dropout](#trainingdropout)
     * [training.gradient_clip](#traininggradient_clip)
     * [training.epochs](#trainingepochs)
@@ -187,7 +188,14 @@ Supported methods:
 
 Mixing fraction, $\alpha$, of edge and hyperedge loss.
 
-The final loss is computed according to $\mathcal{L} = \alpha\mathcal{L}_\mathrm{hyperedge} + (1-\alpha)\mathcal{L}_\mathrm{edge} + \mathcal{L}_\mathrm{diffusion}$.
+The final loss is computed according to: $\mathcal{L} = \eta\mathcal{L}_d+(1-\eta)\[ \alpha \mathcal{L}_h + (1-\alpha)\mathcal{L}_e \]$, where $\mathcal{L}_d$ is the diffusion loss, $\mathcal{L}_h$ is the hyperedge loss and $\mathcal{L}_e$ is the edge loss.
+
+
+### training.eta
+
+Mixing fraction, $\eta$, of diffusion-to-reconstruction loss.
+
+The final loss is computed according to: $\mathcal{L} = \eta\mathcal{L}_d+(1-\eta)\[ \alpha \mathcal{L}_h + (1-\alpha)\mathcal{L}_e \]$, where $\mathcal{L}_d$ is the diffusion loss, $\mathcal{L}_h$ is the hyperedge loss and $\mathcal{L}_e$ is the edge loss.
 
 
 ### training.dropout
