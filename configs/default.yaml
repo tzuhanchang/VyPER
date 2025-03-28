@@ -19,6 +19,7 @@ training:
   optimizer:          Adam
   loss_reduction:     mean
   alpha:              0.8
+  eta:                0.8
   dropout:            0.01
   gradient_clip:      1.
   epochs:             500
