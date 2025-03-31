@@ -28,7 +28,10 @@ def DeltaR_DiffusionLoss(input: Tensor, target: Tensor) -> Tensor:
 
     dR = torch.sqrt((target_p4.eta - input_p4.eta) * (target_p4.eta - input_p4.eta)
                   + (target_p4.phi - input_p4.phi) * (target_p4.phi - input_p4.phi))
-    return dR.view(-1,1)
+
+    loss = nn.functional.mse_loss(input, target, reduction='none')
+    loss = torch.sum(loss, dim=1)
+    return dR.view(-1,1) + loss.view(-1,1)
 
 
 def EdgeLoss(edge_attr_out: Tensor, edge_attr_t: Tensor, edge_attr_batch: Tensor,
