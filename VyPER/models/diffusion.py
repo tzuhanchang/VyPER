@@ -6,6 +6,7 @@ from torch_geometric.utils import degree
 from typing import Optional
 
 from .attention import Denoiser
+from .loss import DeltaR_DiffusionLoss
 
 
 class Scheduler(object):
@@ -113,8 +114,9 @@ class NeutrinoDiffusion(nn.Module):
             # Denoising model
             noise_pred = self.Denoiser(D, ctx, T, nu_batch)
 
-            loss = torch.nn.functional.mse_loss(noise_pred, N, reduction='none')
-            loss = torch.sum(loss, dim=1)
+            # loss = torch.nn.functional.mse_loss(noise_pred, N, reduction='none')
+            # loss = torch.sum(loss, dim=1)
+            loss = DeltaR_DiffusionLoss(noise_pred, N)
             return (loss, self.solver(ctx_s, nu_batch)) if sampling else loss
 
         else:

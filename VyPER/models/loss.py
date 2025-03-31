@@ -2,7 +2,33 @@ import torch
 
 from torch import nn, Tensor
 from torch_geometric.utils import scatter
+from torch_hep.lorentz import MomentumTensor
 from typing import Optional
+
+
+def DeltaR_DiffusionLoss(input: Tensor, target: Tensor) -> Tensor:
+    r"""Calculate angular distance loss between :obj:`input`
+    and :obj:`Tensor`
+
+    Args:
+        input (Tensor): Predict noise in normalised (px,py,pz) space.
+        target (Tensor): target noise in normalised (px,py,pz) space.
+
+    :rtype: :class:`Tensor`
+    """
+    assert input.size(1)==3 and target.size(1)==3
+
+    input_e  = ((input[:,0]*input[:,0]) + (input[:,1]*input[:,1])
+              + (input[:,2]*input[:,2])).view(-1,1)
+    target_e = ((target[:,0]*target[:,0]) + (target[:,1]*target[:,1])
+              + (target[:,2]*target[:,2])).view(-1,1)
+
+    input_p4  = MomentumTensor(torch.cat([input_e, input], dim=1))
+    target_p4 = MomentumTensor(torch.cat([target_e, target], dim=1))
+
+    dR = torch.sqrt((target_p4.eta - input_p4.eta) * (target_p4.eta - input_p4.eta)
+                  + (target_p4.phi - input_p4.phi) * (target_p4.phi - input_p4.phi))
+    return dR.view(-1,1)
 
 
 def EdgeLoss(edge_attr_out: Tensor, edge_attr_t: Tensor, edge_attr_batch: Tensor,
