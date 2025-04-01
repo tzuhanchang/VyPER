@@ -52,7 +52,7 @@ class NeutrinoDiffusion(nn.Module):
             d_embed=d_embed,
             depth=4,
             num_heads=num_heads,
-            d_x=3,
+            d_x=d_target,
             d_ctx=(d_ctx*num_message_steps),
             mlp_ratio=4.,
             dropout=0.
