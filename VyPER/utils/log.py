@@ -31,8 +31,8 @@ def get_neutrino_p4(
             nu[:,column] = reverse_transform_methods[column](nu[:,column])
 
     p = functional(torch.cat(
-        [functions[i](*nu[:,function_inputs[i]].split(1,dim=1)) for i in range(nu.size(1))],
-        dim=1))
+        [functions[i](*nu[:,function_inputs[i]].split(1,dim=1)) 
+         for i in range(len(functions))], dim=1))
     return p
 
 
