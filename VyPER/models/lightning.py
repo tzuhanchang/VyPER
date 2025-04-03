@@ -141,7 +141,7 @@ class VyPER(LightningModule):
 
         if batch_idx == final_val_batch_idx:
             p = get_neutrino_p4(nu_out,
-                                self.trainer.datamodule.nueutrino_momentum_func,
+                                self.trainer.datamodule.neutrino_momentum_func,
                                 self.trainer.datamodule.neutrino_4vector_func,
                                 self.trainer.datamodule.neutrino_4vector_loc,
                                 self.trainer.datamodule.nu_reverse_transform_methods)
