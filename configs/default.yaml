@@ -54,7 +54,7 @@ input:
     - btag
     - charge
 
-  node_4vector_defination:
+  node_4vector_definition:
     functional: MomentumTensor.EEtaPhiPt
     ordered_inputs:
       - e

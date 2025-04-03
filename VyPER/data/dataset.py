@@ -27,7 +27,7 @@ class VyPERDataset(Dataset):
 
         # Locate 4 vector input features from all node features
         node_4vector_loc = []
-        for input in config['input']['node_4vector_defination']['ordered_inputs']:
+        for input in config['input']['node_4vector_definition']['ordered_inputs']:
             loc = 0
             for feat in config['input']['node_features']:
                 if input == feat:
@@ -38,7 +38,7 @@ class VyPERDataset(Dataset):
         assert self.node_4vector_loc.size(0) == 4
 
         # Define the function that handles 4 momentum calculation
-        self.momentum_func = eval(config['input']['node_4vector_defination']['functional'])
+        self.momentum_func = eval(config['input']['node_4vector_definition']['functional'])
 
         # Read functions that define edge features
         self.edge_feat_func = [
