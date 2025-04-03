@@ -47,6 +47,9 @@ class VyPERDataModule(LightningDataModule):
         self.glob_in_channels = None
         self.nu_out_channels  = None
         self.nu_reverse_transform_methods = None
+        self.neutrino_momentum_func = None
+        self.neutrino_4vector_func = None
+        self.neutrino_4vector_loc = None
 
     def setup(self, stage: str) -> None:
         if self.train_set is not None:
@@ -65,6 +68,9 @@ class VyPERDataModule(LightningDataModule):
                 self.glob_in_channels = data.glob_in_channels
                 self.nu_out_channels  = data.nu_out_channels
                 self.nu_reverse_transform_methods = data.nu_reverse_transform_methods
+                self.neutrino_momentum_func = data.neutrino_momentum_func
+                self.neutrino_4vector_func = data.neutrino_4vector_func
+                self.neutrino_4vector_loc = data.neutrino_4vector_loc
 
                 self.train_data, self.val_data = random_split(
                     data, 
@@ -80,6 +86,9 @@ class VyPERDataModule(LightningDataModule):
                     self.glob_in_channels = self.train_data.glob_in_channels
                     self.nu_out_channels  = self.train_data.nu_out_channels
                     self.nu_reverse_transform_methods = self.train_data.nu_reverse_transform_methods
+                    self.neutrino_momentum_func = self.train_data.neutrino_momentum_func
+                    self.neutrino_4vector_func = self.train_data.neutrino_4vector_func
+                    self.neutrino_4vector_loc = self.train_data.neutrino_4vector_loc
 
                 if self.event_filter is not None:
                     self.train_data = Subset(
@@ -100,6 +109,9 @@ class VyPERDataModule(LightningDataModule):
                 self.glob_in_channels = self.predict_data.glob_in_channels
                 self.nu_out_channels  = self.predict_data.nu_out_channels
                 self.nu_reverse_transform_methods = self.predict_data.nu_reverse_transform_methods
+                self.neutrino_momentum_func = self.predict_data.neutrino_momentum_func
+                self.neutrino_4vector_func = self.predict_data.neutrino_4vector_func
+                self.neutrino_4vector_loc = self.predict_data.neutrino_4vector_loc
 
         if self.train_data is None and self.val_data is None and self.predict_data is None:
             raise RuntimeError("No datasets have been provided. Abort!")
