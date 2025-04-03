@@ -58,7 +58,7 @@ class VyPERDataset(Dataset):
         self.neutrino_4vector_func = neutrino_4vector_func
         del neutrino_4vector_loc
         del neutrino_4vector_func
-        assert len(self.neutrino_4vector_loc) == len(neutrino_4vector_func)
+        assert len(self.neutrino_4vector_loc) == len(self.neutrino_4vector_func)
 
         # Define the function that handles 4 momentum calculation
         self.momentum_func = eval(config['input']['node_4vector_definition']['functional'])
