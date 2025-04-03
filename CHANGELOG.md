@@ -22,5 +22,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Fixed
+ - Fix typo `node_4vector_definition` ([#15](https://github.com/tzuhanchang/VyPER/pull/15))
  - Fix the hardcoded diffusion output size ([#14](https://github.com/tzuhanchang/VyPER/pull/14))
  - Fix the missing `x_fw_mask` and `edge_fw_mask` ([#6](https://github.com/tzuhanchang/VyPER/pull/6))
