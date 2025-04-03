@@ -26,7 +26,6 @@ def get_neutrino_p4(
 
     :rtype: :class:`MomentumTensor`
     """
-    assert nu.size(1) == len(functions) == len(function_inputs)
     if reverse_transform_methods is not None:
         for column in range(nu.size(1)):
             nu[:,column] = reverse_transform_methods[column](nu[:,column])
