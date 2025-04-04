@@ -522,6 +522,13 @@ target:
       - x * 53.3342 - 0.0179
       - x * 53.3252 - 0.0069
       - x * 160.5729 - 0.0306
+    4vector_definition:
+      functional: MomentumTensor
+      ordered_inputs:
+        - torch.sqrt((px*px)+(py*py)+(pz*pz))
+        - px
+        - py
+        - pz
   ...
 ```
 Definitions of target neutrinos.
@@ -535,6 +542,8 @@ Each neutrino target feature is transformed/scaled accordingly.
 These methods are arranged in the same order as `features`.
 
 `reverse_transforms`: neutrino predictions are transformed back to the expected states accordingly.
+
+`4vector_definition`: similar to [`input.node_4vector_definition`](#inputnode_4vector_definition). This allows the results to be correctly logged.
 
 
 ### target.hyperedge

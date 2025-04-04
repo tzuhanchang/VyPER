@@ -11,7 +11,10 @@ from typing import List, Optional
 
 def get_neutrino_p4(
     nu: Tensor,
-    reverse_transform_methods: Optional[List[callable]]
+    functional: callable,
+    functions: List,
+    function_inputs: List,
+    reverse_transform_methods: Optional[List[callable]]=None
 ) -> MomentumTensor:
     r"""Get neutrino four momentum. If :obj:`reverse_transform_methods` is
     provided, neutrino is unscaled with the list of methods.
@@ -23,16 +26,13 @@ def get_neutrino_p4(
 
     :rtype: :class:`MomentumTensor`
     """
-    assert nu.size(1) == 3
     if reverse_transform_methods is not None:
         for column in range(nu.size(1)):
             nu[:,column] = reverse_transform_methods[column](nu[:,column])
 
-    e = torch.sqrt((nu[:,0]*nu[:,0]) + (nu[:,1]*nu[:,1]) + (nu[:,2]*nu[:,2]))
-    p = MomentumTensor(torch.cat([e.view(-1,1),
-                                  nu[:,0].view(-1,1),
-                                  nu[:,1].view(-1,1),
-                                  nu[:,2].view(-1,1)], dim=1))
+    p = functional(torch.cat(
+        [functions[i](*nu[:,function_inputs[i]].split(1,dim=1)) 
+         for i in range(len(functions))], dim=1))
     return p
 
 

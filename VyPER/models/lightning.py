@@ -140,7 +140,11 @@ class VyPER(LightningModule):
                  prog_bar=False, logger=True, sync_dist=True)
 
         if batch_idx == final_val_batch_idx:
-            p = get_neutrino_p4(nu_out, self.trainer.datamodule.nu_reverse_transform_methods)
+            p = get_neutrino_p4(nu_out,
+                                self.trainer.datamodule.neutrino_momentum_func,
+                                self.trainer.datamodule.neutrino_4vector_func,
+                                self.trainer.datamodule.neutrino_4vector_loc,
+                                self.trainer.datamodule.nu_reverse_transform_methods)
             tensorboard = self.logger.experiment
             tensorboard.add_histogram('histograms/px', p.px, global_step=self.current_epoch)
             tensorboard.add_histogram('histograms/py', p.py, global_step=self.current_epoch)

@@ -37,8 +37,32 @@ class VyPERDataset(Dataset):
         del node_4vector_loc
         assert self.node_4vector_loc.size(0) == 4
 
+        # Locate neutrino 4 vector inputs
+        neutrino_4vector_func = []
+        neutrino_4vector_loc = []
+        for input in config['target']['neutrinos']['4vector_definition']['ordered_inputs']:
+            loc = 0
+            func_like = []
+            for feat in config['target']['neutrinos']['features']:
+                if feat in input and feat != input:
+                    func_like.append(loc)
+                if feat == input:
+                    neutrino_4vector_loc.append([loc])
+                    neutrino_4vector_func.append(eval(f"lambda {input}: {input}"))
+                loc += 1
+            if len(func_like) > 0:
+                neutrino_4vector_loc.append(func_like)
+                neutrino_4vector_func.append(
+                    eval(f"lambda {','.join(map(str,np.array(config['target']['neutrinos']['features'])[func_like]))}: {input}"))
+        self.neutrino_4vector_loc = neutrino_4vector_loc
+        self.neutrino_4vector_func = neutrino_4vector_func
+        del neutrino_4vector_loc
+        del neutrino_4vector_func
+        assert len(self.neutrino_4vector_loc) == len(self.neutrino_4vector_func)
+
         # Define the function that handles 4 momentum calculation
         self.momentum_func = eval(config['input']['node_4vector_definition']['functional'])
+        self.neutrino_momentum_func = eval(config['target']['neutrinos']['4vector_definition']['functional'])
 
         # Read functions that define edge features
         self.edge_feat_func = [
