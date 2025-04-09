@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+ - Add neutrino message backward pass ([#18](https://github.com/tzuhanchang/VyPER/pull/18))
  - Add neutrino four-vector definition ([#16](https://github.com/tzuhanchang/VyPER/pull/16))
  - Add `eta` hyperparameter ([#10](https://github.com/tzuhanchang/VyPER/pull/10))
  - Add prediction functionality ([#9](https://github.com/tzuhanchang/VyPER/pull/9))

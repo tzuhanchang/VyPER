@@ -1,6 +1,6 @@
 import torch
 
-from torch.nn import Module, Sequential as Seq, Linear, ReLU, Dropout, SiLU
+from torch.nn import Module, Sequential as Seq, Linear, ReLU, Dropout, SiLU, LayerNorm
 from torch_geometric.utils import scatter
 
 
@@ -199,6 +199,21 @@ class NeutrinoModel(Module):
             Linear(d_embed, d_out)
         )
 
+        self.backward_pass_mlp = Seq(
+            Linear(d_out, d_embed),
+            SiLU(),
+            Dropout(p=dropout),
+            Linear(d_embed, d_embed),
+            SiLU(),
+            Dropout(p=dropout),
+            Linear(d_embed, d_node)
+        )
+        self.backward_pass_norm = LayerNorm(d_node, elementwise_affine=False, eps=1e-6)
+        self.backward_pass_modulation = Seq(
+            SiLU(),
+            Linear(d_node, 2 * d_node, bias=True)
+        )
+
     def forward(self, x, edge_index, edge_attr, u, batch, lep_node, lep_forward_edge):
         num_neutrinos = scatter(lep_node, index=batch, dim=0, dim_size=u.size(0), reduce='sum')
 
@@ -216,4 +231,13 @@ class NeutrinoModel(Module):
         # Relative context vector - summarise context vectors in a given event
         ctx_rel  = torch.cat([scatter(ctx, nu_batch, dim=0, dim_size=u.size(0), reduce='sum'), u], dim=1).float()
         ctx_rel  = self.ctx_nu_relative(ctx_rel)
-        return self.ctx_out(torch.cat([ctx, ctx_rel[nu_batch]], dim=1))
+
+        ctx_out  = self.ctx_out(torch.cat([ctx, ctx_rel[nu_batch]], dim=1))
+
+        # Backward lepton pass
+        backward_in = self.backward_pass_mlp(ctx_out)
+        shift, scale = self.backward_pass_modulation(backward_in).chunk(2, dim=1)
+        backward_pass = self.backward_pass_norm(backward_in) * (1 + scale) + shift
+        backward_out = torch.zeros_like(x, device=x.device, dtype=x.dtype)
+        backward_out[lep_node.to(torch.bool)] = backward_pass
+        return ctx_out, (x + backward_out)
