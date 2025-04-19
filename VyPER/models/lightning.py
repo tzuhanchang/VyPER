@@ -145,6 +145,13 @@ class VyPER(LightningModule):
                                 self.trainer.datamodule.neutrino_4vector_func,
                                 self.trainer.datamodule.neutrino_4vector_loc,
                                 self.trainer.datamodule.nu_reverse_transform_methods)
+            p_t = get_neutrino_p4(val_batch.neutrino_t,
+                                self.trainer.datamodule.neutrino_momentum_func,
+                                self.trainer.datamodule.neutrino_4vector_func,
+                                self.trainer.datamodule.neutrino_4vector_loc,
+                                self.trainer.datamodule.nu_reverse_transform_methods)
+            dPhi = torch.arctan2(torch.sin(p_t.phi-p.phi),torch.cos(p_t.phi-p.phi))
+            dEta = p_t.eta - p.eta
             tensorboard = self.logger.experiment
             tensorboard.add_histogram('histograms/px', p.px, global_step=self.current_epoch)
             tensorboard.add_histogram('histograms/py', p.py, global_step=self.current_epoch)
@@ -153,6 +160,9 @@ class VyPER(LightningModule):
             tensorboard.add_histogram('histograms/eta', p.eta, global_step=self.current_epoch)
             tensorboard.add_histogram('histograms/phi', p.phi, global_step=self.current_epoch)
             tensorboard.add_histogram('histograms/pt', p.pt, global_step=self.current_epoch)
+            tensorboard.add_histogram('histograms/dPhi', dPhi, global_step=self.current_epoch)
+            tensorboard.add_histogram('histograms/dEta', dEta, global_step=self.current_epoch)
+            tensorboard.add_histogram('histograms/dR', torch.sqrt(dPhi*dPhi + dEta*dEta), global_step=self.current_epoch)
 
     def predict_step(self, pred_batch, batch_idx, dataloader_idx=0):
         edge_attr_out, nu_out, nu_batch = self.forward(
