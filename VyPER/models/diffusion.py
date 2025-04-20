@@ -9,7 +9,7 @@ from .attention import Denoiser
 
 
 class Scheduler(object):
-    def __init__(self, SR_max: float=1., SR_min: float=1e-1, scheme: str='cosine'):
+    def __init__(self, SR_max: float=1., SR_min: float=1e-2, scheme: str='cosine'):
         self.SR_max = SR_max
         self.SR_min = SR_min
         try:
@@ -27,7 +27,7 @@ class Scheduler(object):
         beta  = 2 * (math.acos(self.SR_min)
             - math.acos(self.SR_max)) * torch.tan(alpha)
 
-        return torch.cos(alpha), torch.sin(alpha), beta
+        return torch.cos(alpha).view(-1,1), torch.sin(alpha).view(-1,1), beta
 
 
 class NeutrinoDiffusion(nn.Module):
@@ -71,13 +71,14 @@ class NeutrinoDiffusion(nn.Module):
         # Starting from pure noise and removing noise iteratively:
         D = N
         for _ in range(self.num_sampling_steps):
+            # Diffusion Scheduler
+            signal_rate_i, noise_rate_i, _ = self.scheduler(T)
+            signal_rate_j, noise_rate_j, _ = self.scheduler(T-dT)
             # Denoising model
             noise_pred = self.Denoiser(D, ctx, T, nu_batch)
+            data_pred  = (D - noise_rate_i * noise_pred) / signal_rate_i
 
-            _, noise_rate, beta = self.scheduler(T)
-            s = - noise_pred / noise_rate.view(-1,1)
-
-            D += 0.5 * beta.view(-1,1) * (D + s) * dT
+            D = signal_rate_j * data_pred + noise_rate_j * noise_pred
             T = T - dT
         return D
 
@@ -108,7 +109,7 @@ class NeutrinoDiffusion(nn.Module):
             # ~N(0,1) noise
             N = torch.rand((ctx.size(0), self.d_target), device=device)
             # Diffused (noised) data
-            D = neutrino_t * signal_rate.view(-1,1) + N * noise_rate.view(-1,1)
+            D = neutrino_t * signal_rate + N * noise_rate
 
             # Denoising model
             noise_pred = self.Denoiser(D, ctx, T, nu_batch)
