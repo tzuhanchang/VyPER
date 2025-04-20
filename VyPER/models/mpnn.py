@@ -217,23 +217,20 @@ class MPNNs(nn.Module):
         # Message Passing Step
         for i in range(self.num_layers):
             if i == 0:
-                x_prime, edge_attr_prime, u_prime = getattr(self, 'MessagePassing' + str(i))(
-                    x, edge_index, edge_attr, u, batch
+                ctx, x_prime = getattr(self, 'NeutrinoModel' + str(i))(
+                    x, edge_index, edge_attr, u, batch, lep_node, lep_forward_edge
                 )
-                nu_ctx.append(
-                    getattr(self, 'NeutrinoModel' + str(i))(
-                        x, edge_index, edge_attr, u, batch, lep_node, lep_forward_edge
-                    )
+                x_prime, edge_attr_prime, u_prime = getattr(self, 'MessagePassing' + str(i))(
+                    x_prime, edge_index, edge_attr, u, batch
                 )
             else:
+                ctx, x_prime = getattr(self, 'NeutrinoModel' + str(i))(
+                    x_prime, edge_index, edge_attr_prime, u_prime, batch, lep_node, lep_forward_edge
+                )
                 x_prime, edge_attr_prime, u_prime = getattr(self, 'MessagePassing' + str(i))(
                     x_prime, edge_index, edge_attr_prime, u_prime, batch
                 )
-                nu_ctx.append(
-                    getattr(self, 'NeutrinoModel' + str(i))(
-                        x_prime, edge_index, edge_attr_prime, u_prime, batch, lep_node, lep_forward_edge
-                    )
-                )
+            nu_ctx.append(ctx)
 
         # Summarising
         edge_attr_prime = self.final_edge_layer(edge_attr_prime)
