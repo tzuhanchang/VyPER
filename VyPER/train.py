@@ -63,6 +63,7 @@ def Train(cfg : DictConfig) -> None:
         num_attn_heads = cfg['network']['num_attn_heads'],
         optimizer = cfg['training']['optimizer'],
         lr = cfg['training']['learning_rate'],
+        weight_decay = cfg['training']['weight_decay'],
         alpha = cfg['training']['alpha'],
         eta = cfg['training']['eta'],
         reduction = cfg['training']['loss_reduction']
