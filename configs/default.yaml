@@ -16,7 +16,8 @@ network:
 
 training:
   learning_rate:      0.0003
-  optimizer:          Adam
+  weight_decay:       0.01
+  optimizer:          AdamW
   loss_reduction:     mean
   alpha:              0.8
   eta:                0.8

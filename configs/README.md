@@ -46,6 +46,7 @@ overwrites the default [training.learning_rate](#traininglearning_rate) to `0.00
 - [training](#training)
 
     * [training.learning_rate](#traininglearning_rate)
+    * [training.weight_decay](#trainingweight_decay)
     * [training.optimizer](#trainingoptimizer)
     * [training.loss_reduction](#trainingloss_reduction)
     * [training.alpha](#trainingalpha)
@@ -165,12 +166,18 @@ Configurations for the network training.
 Learning rate.
 
 
+### training.weight_decay
+
+Weight decay coefficient. This parameter is valid only if `AdamW` is chosen as the optimizer (see [training.optimizer](#trainingoptimizer)).
+
+
 ### training.optimizer
 
 Gradient descent algorithm.
 
 Supported optimizers:
  - `Adam`: [Adam: A Method for Stochastic Optimization](https://arxiv.org/abs/1412.6980).
+ - `AdamW`: [Decoupled Weight Decay Regularization](https://arxiv.org/abs/1711.05101).
 
 
 ### training.loss_reduction
