@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Add `event_filter` option ([#2](https://github.com/tzuhanchang/VyPER/pull/2))
 
 ### Changed
+ - Replace the Euler sampling method with DDIM ([#21](https://github.com/tzuhanchang/VyPER/pull/21))
  - Relocate environment files ([#7](https://github.com/tzuhanchang/VyPER/pull/7))
  - Update logging strategy ([#4](https://github.com/tzuhanchang/VyPER/pull/4))
 
