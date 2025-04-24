@@ -12,7 +12,7 @@ network:
   num_message_layers: 3
   hyperedge_feats:    128
   hyperedge_order:    3
-  num_sampling_steps: 50
+  num_sampling_steps: 200
 
 training:
   learning_rate:      0.0003
