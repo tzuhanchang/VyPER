@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+ - Add `AdamW` optimizer ([#23](https://github.com/tzuhanchang/VyPER/pull/23))
  - Add $\Delta R(\nu^\mathrm{truth},\nu^\mathrm{reco})$ log in Tensorboard ([#19](https://github.com/tzuhanchang/VyPER/pull/19))
  - Add neutrino message backward pass ([#18](https://github.com/tzuhanchang/VyPER/pull/18))
  - Add neutrino four-vector definition ([#16](https://github.com/tzuhanchang/VyPER/pull/16))
