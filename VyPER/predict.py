@@ -1,8 +1,10 @@
 import os
 import os.path as osp
+import numpy
 import hydra
 import torch
 import lightning.pytorch as pl
+import pandas as pd
 
 from VyPER.data import VyPERDataModule
 from VyPER.models import VyPER
@@ -22,18 +24,21 @@ def Predict(cfg : DictConfig) -> None:
 
     map_location = torch.device('cuda') if cfg['device']['accelerator'].lower() == "gpu" else torch.device('cpu')
     model_directory = cfg['predicting']['model_directory']
+    model_choice = cfg['predicting']['model_choice'].split('-')
 
     # Load checkpoint
-    assert model_directory is not None, "No `model_directory` provided. Abort!"
-    ckpt_file = [filename for filename in os.listdir(osp.join(model_directory, "checkpoints")) 
-                 if filename.startswith("epoch")]
-    if len(ckpt_file) == 1:
-        ckpt_file = osp.join(model_directory, "checkpoints", ckpt_file[0])
-    elif len(ckpt_file) > 1:
-        ckpt_file = osp.join(model_directory, "checkpoints", ckpt_file[-1])
-        raise UserWarning(f"There are multiple .ckpt files listed in {model_directory}, using the last checkpoint.")
-    elif len(ckpt_file) == 0:
-        raise RuntimeError(f"No checkpoint files have been found in {model_directory}.")
+    if len(model_choice) != 2:
+        raise UserWarning(f"Invalid `model_choice`: {cfg['predicting']['model_choice']}, use the last checkpoint instead.")
+        ckpt_file = osp.join(model_directory, "checkpoints", 'last.ckpt')
+    else:
+        assert model_directory is not None, "No `model_directory` provided. Abort!"
+        ckpt_files = [filename.strip('.ckpt').split('-') for filename in
+                    os.listdir(osp.join(model_directory, "checkpoints")) if filename.startswith("epoch")]
+        ckpt_db = pd.DataFrame([{k: float(v) for k, v in (item.split('=') for item in entry)} for entry in ckpt_files])
+
+        ckpt_idx = getattr(numpy, 'arg'+model_choice[0])(ckpt_db[model_choice[1]])
+        print(f"Loading checkpoint: {ckpt_files[ckpt_idx]}.")
+        ckpt_file = osp.join(model_directory, "checkpoints", ckpt_files[ckpt_idx])
 
     # Load hyperparameters
     hparams_file = osp.join(model_directory, "hparams.yaml")
