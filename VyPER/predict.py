@@ -29,7 +29,7 @@ def Predict(cfg : DictConfig) -> None:
     # Load checkpoint
     if len(model_choice) != 2:
         raise UserWarning(f"Invalid `model_choice`: {cfg['predicting']['model_choice']}, use the last checkpoint instead.")
-        ckpt_file = osp.join(model_directory, "checkpoints", 'last.ckpt')
+        ckpt_file = osp.join(model_directory, 'checkpoints', 'last.ckpt')
     else:
         assert model_directory is not None, "No `model_directory` provided. Abort!"
         ckpt_files = [filename.strip('.ckpt').split('-') for filename in
@@ -37,8 +37,8 @@ def Predict(cfg : DictConfig) -> None:
         ckpt_db = pd.DataFrame([{k: float(v) for k, v in (item.split('=') for item in entry)} for entry in ckpt_files])
 
         ckpt_idx = getattr(numpy, 'arg'+model_choice[0])(ckpt_db[model_choice[1]])
-        print(f"Loading checkpoint: {ckpt_files[ckpt_idx]}.")
-        ckpt_file = osp.join(model_directory, "checkpoints", ckpt_files[ckpt_idx])
+        print(f"Loading checkpoint: {'-'.join(ckpt_files[ckpt_idx])+'.ckpt'}.")
+        ckpt_file = osp.join(model_directory, 'checkpoints', '-'.join(ckpt_files[ckpt_idx])+'.ckpt')
 
     # Load hyperparameters
     hparams_file = osp.join(model_directory, "hparams.yaml")
