@@ -76,7 +76,7 @@ def Train(cfg : DictConfig) -> None:
             save_top_k=5,
             mode="min",
             save_last=True,
-            filename="epoch={epoch}-step={step}-loss={loss/validation_loss:.3f}-dR={accuracy/dR_mean:.3f}",
+            filename="epoch={epoch}-step={step}-loss={loss/validation_loss:.3f}",
             auto_insert_metric_name=False
         ),
         ModelCheckpoint(
@@ -85,7 +85,7 @@ def Train(cfg : DictConfig) -> None:
             save_top_k=5,
             mode="min",
             save_last=False,
-            filename="epoch={epoch}-step={step}-loss={loss/validation_loss:.3f}-dR={accuracy/dR_mean:.3f}",
+            filename="epoch={epoch}-step={step}-dR={accuracy/dR_mean:.3f}",
             auto_insert_metric_name=False
         ),
         # TODO: add hyperedge accuracy checkpoint.
