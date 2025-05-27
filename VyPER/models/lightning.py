@@ -155,6 +155,7 @@ class VyPER(LightningModule):
                                 self.trainer.datamodule.nu_reverse_transform_methods)
             dPhi = torch.arctan2(torch.sin(p_t.phi-p.phi),torch.cos(p_t.phi-p.phi))
             dEta = p_t.eta - p.eta
+            dR   = torch.sqrt(dPhi*dPhi + dEta*dEta)
             tensorboard = self.logger.experiment
             tensorboard.add_histogram('histograms/px', p.px, global_step=self.current_epoch)
             tensorboard.add_histogram('histograms/py', p.py, global_step=self.current_epoch)
@@ -165,7 +166,9 @@ class VyPER(LightningModule):
             tensorboard.add_histogram('histograms/pt', p.pt, global_step=self.current_epoch)
             tensorboard.add_histogram('histograms/dPhi', dPhi, global_step=self.current_epoch)
             tensorboard.add_histogram('histograms/dEta', dEta, global_step=self.current_epoch)
-            tensorboard.add_histogram('histograms/dR', torch.sqrt(dPhi*dPhi + dEta*dEta), global_step=self.current_epoch)
+            tensorboard.add_histogram('histograms/dR', dR, global_step=self.current_epoch)
+            self.log('accuracy/dR_mean', dR.mean(), batch_size=len(val_batch), on_step=False, on_epoch=True,
+                 prog_bar=False, logger=True, sync_dist=True)
 
     def predict_step(self, pred_batch, batch_idx, dataloader_idx=0):
         edge_attr_out, nu_out, nu_batch = self.forward(

@@ -32,6 +32,7 @@ training:
 
 predicting:
   model_directory:    logs/version_0
+  model_choice:       min-loss
   batch_size:         4096
   edge_reduction:     mean
   save_as:            ./output.h5

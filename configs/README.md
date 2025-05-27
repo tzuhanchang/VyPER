@@ -63,6 +63,7 @@ overwrites the default [training.learning_rate](#traininglearning_rate) to `0.00
 - [predicting](#predicting)
 
     * [predicting.model_directory](#predictingmodel_directory)
+    * [predicting.model_choice](#predictingmodel_choice)
     * [predicting.batch_size](#predictingbatch_size)
     * [predicting.edge_reduction](#predictingedge_reduction)
     * [predicting.save_as](#predictingsave_as)
