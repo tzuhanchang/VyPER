@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Removed
+
+### Fixed
+
+
+## [0.1.0-alpha] - 2025-05-27
+
+### Added
  - Add multiple `ModelCheckpoint` ([#25](https://github.com/tzuhanchang/VyPER/pull/25))
  - Add `AdamW` optimizer ([#23](https://github.com/tzuhanchang/VyPER/pull/23))
  - Add $\Delta R(\nu^\mathrm{truth},\nu^\mathrm{reco})$ log in Tensorboard ([#19](https://github.com/tzuhanchang/VyPER/pull/19))
@@ -24,10 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Relocate environment files ([#7](https://github.com/tzuhanchang/VyPER/pull/7))
  - Update logging strategy ([#4](https://github.com/tzuhanchang/VyPER/pull/4))
 
-### Removed
-
 ### Fixed
  - Fix typo `node_4vector_definition` ([#15](https://github.com/tzuhanchang/VyPER/pull/15))
  - Fix the hardcoded diffusion output size ([#14](https://github.com/tzuhanchang/VyPER/pull/14))
  - Fix the missing `x_fw_mask` and `edge_fw_mask` ([#6](https://github.com/tzuhanchang/VyPER/pull/6))
  - Fix input data not being transformed/scaled ([#3](https://github.com/tzuhanchang/VyPER/pull/3))
+
+[0.1.0-alpha]: https://github.com/tzuhanchang/VyPER/releases/tag/v0.1.0-alpha
