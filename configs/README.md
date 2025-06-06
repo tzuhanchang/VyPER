@@ -514,10 +514,8 @@ target:
   neutrinos:
     node_label: 3
     associated_nodes:
-      - 1-2 # el-
-      - 2-2 # mu-
-      - 1-1 # el+
-      - 2-1 # mu+
+      - 1
+      - 2
     features:
       - px
       - py
@@ -542,6 +540,8 @@ target:
 Definitions of target neutrinos.
 
 `node_label`: an integer assigned to the reconstructed neutrino nodes for node type identification.
+
+`associated_nodes`: an integer (see [input.nodes](#inputnodes)) refers to the node(s) which the neutrino is associated with.
 
 `features`: neutrino target features. These should match the `dtype.names` of the `LABELS/NEUTRINO` datasets.
 
