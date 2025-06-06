@@ -9,7 +9,7 @@ import numpy.lib.recfunctions as rf
 from torch import Tensor
 from torch_geometric.data import Dataset, Data
 from torch_hep.lorentz import MomentumTensor
-from itertools import permutations
+from itertools import permutations, combinations
 from typing import Tuple
 
 from .transform import TransformFeatures
@@ -81,6 +81,25 @@ class VyPERDataset(Dataset):
                                     self._cantor_pairing(int(k21), int(k22))])
         self.target_edge_cantor = torch.tensor(edge_cantor,dtype=torch.float32).transpose(0,1)
         del edge_cantor
+
+        # Read target hyperedge labels
+        hyperedge_cantor = []
+        hyperedge_exclusion = []
+        if len(config['target']['hyperedge'].keys()) > 1:
+            raise NotImplementedError("Currently only support one hyperedge target type.")
+        for key, value in config['target']['hyperedge'].items():
+            self.hyperedge_order = len(value[0])
+            for target in value:
+                assert self.hyperedge_order == len(target)
+                hyperedge_cantor.append(
+                    [self._cantor_pairing(*[int(x) for x in target[i].split('-')]) for i in range(len(target))])
+            hyperedge_exclusion.append([[int(target[i].split('-')[0]) for i in range(len(target))] for target in value])
+        self.target_hyperedge_cantor = torch.tensor(hyperedge_cantor,dtype=torch.float32).transpose(0,1)
+        self.hyperedge_exclusion = torch.tensor(
+            list(set(self.input_id.values()).difference(set(np.unique(np.array(hyperedge_exclusion).flatten()))))
+        )
+        del hyperedge_cantor
+        del hyperedge_exclusion
 
         # Read target neutrino labels
         self.neutrino_association = torch.tensor(config['target']['neutrinos']['associated_nodes'])
@@ -203,6 +222,21 @@ class VyPERDataset(Dataset):
         return torch.tensor(rf.structured_to_unstructured(INPUTS['GLOBAL'][index]),
                             dtype=torch.float32)
 
+    def build_hyperedge_index(self, x: Tensor) -> Tensor:
+        r"""Construct hyperedge index tensor from :obj:`x` node input tensor.
+        Returning hyperedge index tensor.
+
+        Args:
+            x (Tensor): Node input tensor.
+
+        :rtype: :class:`Tensor`
+        """
+        # Excluding unnecessary combinations
+        node_loc = torch.all(x[:,-1].unsqueeze(1)!=self.hyperedge_exclusion.unsqueeze(0),
+                             dim=1).nonzero().flatten()
+        hyperedge_index = torch.tensor(list(combinations(node_loc.tolist(), r=self.hyperedge_order))).transpose(0,1)
+        return hyperedge_index
+
     def get_node_cantor_id(self, LABELS: h5py._hl.group.Group, index: int) -> Tensor:
         r"""Get node Cantor ID using node ID and object truth ID from
         :obj:`LABELS` HDF5 data group.
@@ -251,6 +285,16 @@ class VyPERDataset(Dataset):
         mask = ~torch.any(nu.isnan(),dim=1)
         return nu[mask,:]
 
+    def build_hyperedge_target(self, hyperedge_cantor_id: Tensor,
+                               hyperedge_index: Tensor) -> Tensor:
+        hyperedge_search = torch.sort(hyperedge_cantor_id,0)[0].unsqueeze(2)
+        cantor_id = self.target_hyperedge_cantor.unsqueeze(1)
+        matches = torch.all(hyperedge_search==cantor_id,dim=0)
+        indices = matches.nonzero()[:,0]
+        hyperedge_attr_t = torch.zeros((hyperedge_index.size(1),1),dtype=torch.float32)
+        hyperedge_attr_t[indices] = 1
+        return hyperedge_attr_t
+
     def get_masks(self, x: Tensor, edge_index: Tensor) -> Tuple[Tensor,Tensor]:
         r"""Get node and edge masks for neutrino association.
         Returning node and edge masks.
@@ -276,19 +320,25 @@ class VyPERDataset(Dataset):
         edge_index, edge_attr = self.build_edge_attr(x)
         u = self.build_glob_attr(self.file['INPUTS'],index)
         x_fw_mask, edge_fw_mask = self.get_masks(x, edge_index)
+        hyperedge_index = self.build_hyperedge_index(x)
 
         if self._train_mode is False:
             data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, u=u,
-                        x_fw_mask=x_fw_mask, edge_fw_mask=edge_fw_mask)
+                        x_fw_mask=x_fw_mask, edge_fw_mask=edge_fw_mask,
+                        hyperedge_index=hyperedge_index)
         else:
             node_cantor = self.get_node_cantor_id(self.file['LABELS'],index)
             edge_cantor = torch.cat([node_cantor[edge_index[0]].unsqueeze(0),
                                     node_cantor[edge_index[1]].unsqueeze(0)])
+            hyperedge_cantor = torch.cat([
+                node_cantor[hyperedge_index[i]].unsqueeze(0) for i in range(hyperedge_index.size(0))])
+            hyperedge_attr_t = self.build_hyperedge_target(hyperedge_cantor, hyperedge_index)
             neutrino_t = self.build_neutrino_target(self.file['LABELS'],index)
             edge_attr_t = self.build_edge_target(edge_cantor, edge_index)
             data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, u=u,
                         edge_attr_t=edge_attr_t, neutrino_t=neutrino_t,
-                        x_fw_mask=x_fw_mask, edge_fw_mask=edge_fw_mask)
+                        x_fw_mask=x_fw_mask, edge_fw_mask=edge_fw_mask,
+                        hyperedge_index=hyperedge_index, hyperedge_attr_t=hyperedge_attr_t)
 
         return self.transform(data)
 
