@@ -111,7 +111,7 @@ target:
   neutrinos:
     node_label: 3
     associated_nodes:
-      - 1 # UPDATE: Associate with leptons only
+      - 1
       - 2
     features:
       - px
