@@ -82,7 +82,7 @@ input:
     - x
     - x
     - x
-    - torch.log(x)
+    - torch.log(torch.clamp(x, min=1e-9)) # torch.log(x)
 
   global_features:
     - njet
@@ -111,22 +111,20 @@ target:
   neutrinos:
     node_label: 3
     associated_nodes:
-      - 1-2 # el-
-      - 2-2 # mu-
-      - 1-1 # el+
-      - 2-1 # mu+
+      - 1 # UPDATE: Associate with leptons only
+      - 2
     features:
       - px
       - py
       - pz
     transforms:
-      - (x + 0.0179) / 53.3342
-      - (x + 0.0069) / 53.3252
-      - (x + 0.0306) / 160.5729
+      - (x + 0.0032) / 50.1241
+      - (x + 0.0145) / 50.1411
+      - (x + 0.0276) / 156.3070
     reverse_transforms:
-      - x * 53.3342 - 0.0179
-      - x * 53.3252 - 0.0069
-      - x * 160.5729 - 0.0306
+      - x * 50.1241 - 0.0032
+      - x * 50.1411 - 0.0145
+      - x * 156.3070 - 0.0276
     4vector_definition:
       functional: MomentumTensor
       ordered_inputs:

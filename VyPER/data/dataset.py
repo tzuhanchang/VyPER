@@ -83,12 +83,7 @@ class VyPERDataset(Dataset):
         del edge_cantor
 
         # Read target neutrino labels
-        neutrino_cantor = []
-        for value in config['target']['neutrinos']['associated_nodes']:
-            k1, k2 = value.split('-')
-            neutrino_cantor.append(self._cantor_pairing(int(k1),int(k2)))
-        self.neutrino_cantor_target = torch.tensor(neutrino_cantor)
-        del neutrino_cantor
+        self.neutrino_association = torch.tensor(config['target']['neutrinos']['associated_nodes'])
 
         # Get input channel size
         self.node_in_channels = len(config['input']['node_features']) + 1
@@ -256,23 +251,23 @@ class VyPERDataset(Dataset):
         mask = ~torch.any(nu.isnan(),dim=1)
         return nu[mask,:]
 
-    def get_masks(self, node_cantor: Tensor, edge_cantor: Tensor) -> Tuple[Tensor,Tensor]:
+    def get_masks(self, x: Tensor, edge_index: Tensor) -> Tuple[Tensor,Tensor]:
         r"""Get node and edge masks for neutrino association.
         Returning node and edge masks.
 
         Args:
-            node_cantor (Tensor): Node Cantor IDs.
-            edge_cantor (Tensor): Edge Cantor IDs.
+            x (Tensor): Node input features.
+            edge_index (Tensor): Edge index tensor.
 
         :rtype: :class:`Tuple[Tensor,Tensor]`
         """
-        x_fw_mask_loc = torch.any(self.neutrino_cantor_target.unsqueeze(1)==node_cantor.unsqueeze(0),
-                                  dim=0).nonzero().flatten()
-        x_fw_mask = torch.zeros(node_cantor.size(0), dtype=torch.int64)
+        x_fw_mask_loc = torch.any(x[:,-1].unsqueeze(1)==self.neutrino_association.unsqueeze(0),
+                                  dim=1).nonzero().flatten()
+        x_fw_mask = torch.zeros(x.size(0), dtype=torch.int64)
         x_fw_mask[x_fw_mask_loc] = 1
-        edge_fw_mask_loc = torch.any(self.neutrino_cantor_target.unsqueeze(1)==edge_cantor[1].unsqueeze(0),
-                                     dim=0).nonzero().flatten()
-        edge_fw_mask = torch.zeros(edge_cantor[1].size(0), dtype=torch.int64)
+        edge_fw_mask_loc = torch.any(edge_index[1].unsqueeze(1)==x_fw_mask_loc.unsqueeze(0),
+                                     dim=1).nonzero().flatten()
+        edge_fw_mask = torch.zeros(edge_index[1].size(0), dtype=torch.int64)
         edge_fw_mask[edge_fw_mask_loc] = 1
         return x_fw_mask, edge_fw_mask
 
@@ -280,16 +275,15 @@ class VyPERDataset(Dataset):
         x = self.build_node_attr(self.file['INPUTS'],index)
         edge_index, edge_attr = self.build_edge_attr(x)
         u = self.build_glob_attr(self.file['INPUTS'],index)
-
-        node_cantor = self.get_node_cantor_id(self.file['LABELS'],index)
-        edge_cantor = torch.cat([node_cantor[edge_index[0]].unsqueeze(0),
-                                 node_cantor[edge_index[1]].unsqueeze(0)])
-        x_fw_mask, edge_fw_mask = self.get_masks(node_cantor, edge_cantor)
+        x_fw_mask, edge_fw_mask = self.get_masks(x, edge_index)
 
         if self._train_mode is False:
             data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, u=u,
                         x_fw_mask=x_fw_mask, edge_fw_mask=edge_fw_mask)
         else:
+            node_cantor = self.get_node_cantor_id(self.file['LABELS'],index)
+            edge_cantor = torch.cat([node_cantor[edge_index[0]].unsqueeze(0),
+                                    node_cantor[edge_index[1]].unsqueeze(0)])
             neutrino_t = self.build_neutrino_target(self.file['LABELS'],index)
             edge_attr_t = self.build_edge_target(edge_cantor, edge_index)
             data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, u=u,
