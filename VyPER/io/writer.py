@@ -19,10 +19,12 @@ class PredictionWriter(BasePredictionWriter):
 
     :type: :obj:`None`
     """
-    def __init__(self, output_dir, edge_reduction: Optional[str]=None) -> None:
+    def __init__(self, output_dir, edge_out_channels: int,
+                 edge_reduction: Optional[str]=None) -> None:
         super().__init__(write_interval='batch')
 
         self.output_dir = output_dir
+        self.edge_out_channels = edge_out_channels
         self.edge_reduction = edge_reduction
         self.num_pred_events = None
         self.batch_size = None
@@ -41,8 +43,7 @@ class PredictionWriter(BasePredictionWriter):
         self.edge_index = data_group.create_dataset(
             "EdgeIndex", (self.num_pred_events,2,),dtype=index_dtype)
         self.edge_out = data_group.create_dataset(
-            "EdgeSoftP", (self.num_pred_events,1,), dtype=value_dtype)
-            # TODO: This need to be updated for multiclass 
+            "EdgeSoftP", (self.num_pred_events,self.edge_out_channels,), dtype=value_dtype)
         self.neutrino_out = data_group.create_dataset(
             "Neutrino", (self.num_pred_events,2,), dtype=value_dtype)
             # TODO: This need to be updated for different neutrino count

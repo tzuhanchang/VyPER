@@ -60,6 +60,7 @@ def Predict(cfg : DictConfig) -> None:
 
     writer = PredictionWriter(
         cfg['predicting']['save_as'],
+        edge_out_channels=len(cfg['target']['edge'])+1,
         edge_reduction=cfg['predicting']['edge_reduction']
     )
 

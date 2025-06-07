@@ -69,17 +69,16 @@ class VyPERDataset(Dataset):
             eval(f"lambda e1,e2: {func}") for func in config['input']['edge_features']]
 
         # Read target edge labels
-        if len(config['target']['edge'].keys()) > 1:
-            raise NotImplementedError("Currently only support one edge target type.")
-        edge_cantor = []
+        edge_cantor = {}
         for key, value in config['target']['edge'].items():
+            edge_cantor.update({key: []})
             for target in value:
                 assert len(target) == 2
-                k11, k12 = target[0].split('-')
-                k21, k22 = target[1].split('-')
-                edge_cantor.append([self._cantor_pairing(int(k11), int(k12)),
-                                    self._cantor_pairing(int(k21), int(k22))])
-        self.target_edge_cantor = torch.tensor(edge_cantor,dtype=torch.float32).transpose(0,1)
+                edge_cantor[key].append(
+                    [self._cantor_pairing(*[int(x) for x in target[i].split('-')]) for i in range(len(target))])
+            edge_cantor[key] = torch.tensor(edge_cantor[key],dtype=torch.float32).transpose(0,1)
+        self.target_edge_cantor = edge_cantor
+        self.edge_out_channels = len(self.target_edge_cantor.keys()) + 1
         del edge_cantor
 
         # Read target neutrino labels
@@ -237,12 +236,16 @@ class VyPERDataset(Dataset):
         :rtype: :class:`Tensor`
         """
         edge_search = edge_cantor_id.unsqueeze(2)
-        cantor_id = self.target_edge_cantor.unsqueeze(1)
-        cantor_id_flip = self.target_edge_cantor.flip(0).unsqueeze(1)
-        matches = torch.all(edge_search==cantor_id,dim=0) | torch.all(edge_search==cantor_id_flip, dim=0)
-        indices = matches.nonzero()[:,0]
-        edge_attr_t = torch.zeros((edge_index.size(1),1),dtype=torch.float32)
-        edge_attr_t[indices] = 1
+        edge_attr_t = torch.zeros((edge_index.size(1),self.edge_out_channels),dtype=torch.float32)
+        loc = 0
+        for key, value in self.target_edge_cantor.items():
+            cantor_id = value.unsqueeze(1)
+            cantor_id_flip = value.flip(0).unsqueeze(1)
+            matches = torch.all(edge_search==cantor_id,dim=0) | torch.all(edge_search==cantor_id_flip, dim=0)
+            indices = matches.nonzero()[:,0]
+            edge_attr_t[indices,loc] = 1
+            loc += 1
+        edge_attr_t[~torch.any(edge_attr_t==1,dim=1),self.edge_out_channels-1] = 1
         return edge_attr_t
 
     def build_neutrino_target(self, LABELS: h5py._hl.group.Group, index: int) -> Tensor:
