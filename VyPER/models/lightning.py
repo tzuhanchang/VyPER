@@ -61,7 +61,8 @@ class VyPER(LightningModule):
             num_sampling_steps=self.hparams.num_sampling_steps
         )
 
-        self.metric_edge = MultilabelAccuracy(num_labels=self.hparams.edge_out_channels)
+        self.metric_edge = MultilabelAccuracy(num_labels=self.hparams.edge_out_channels,
+                                              average='none', ignore_index=0)
 
     def forward(self, x, edge_index, edge_attr, u, batch, x_fw_mask, edge_fw_mask,
                 neutrino_t=None, train_mode=True, sampling=True):
@@ -139,8 +140,9 @@ class VyPER(LightningModule):
                  on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
         self.log('loss/validation_loss', loss, batch_size=len(val_batch), on_step=True, on_epoch=True,
                  prog_bar=True, logger=True, sync_dist=True)
-        self.log('accuracy/edge', edge_accuracy, batch_size=len(val_batch), on_step=False, on_epoch=True,
-                 prog_bar=False, logger=True, sync_dist=True)
+        for i in range(self.hparams.edge_out_channels):
+            self.log(f'accuracy/edge_channel_{i}', edge_accuracy[i], batch_size=len(val_batch), on_step=False, on_epoch=True,
+                     prog_bar=False, logger=True, sync_dist=True)
 
         if batch_idx == final_val_batch_idx:
             p = get_neutrino_p4(nu_out,
