@@ -1,8 +1,10 @@
+import os
 import yaml
 import h5py
 import math
 import torch
 
+import os.path as osp
 import numpy as np
 import numpy.lib.recfunctions as rf
 
@@ -20,6 +22,10 @@ class VyPERDataset(Dataset):
         self.root = root
         self.config = config
         self._train_mode = training
+
+        self.cache = osp.join(".cache",osp.splitext(osp.basename(self.root))[0])
+        if not osp.exists(self.cache):
+            os.makedirs(self.cache)
 
         config = self._parse_config_file(self.config)
         self.node_input_names = list(config['input']['nodes'].keys())
@@ -271,7 +277,7 @@ class VyPERDataset(Dataset):
         edge_fw_mask[edge_fw_mask_loc] = 1
         return x_fw_mask, edge_fw_mask
 
-    def __getitem__(self, index) -> Data:
+    def processing(self, index):
         x = self.build_node_attr(self.file['INPUTS'],index)
         edge_index, edge_attr = self.build_edge_attr(x)
         u = self.build_glob_attr(self.file['INPUTS'],index)
@@ -290,7 +296,15 @@ class VyPERDataset(Dataset):
                         edge_attr_t=edge_attr_t, neutrino_t=neutrino_t,
                         x_fw_mask=x_fw_mask, edge_fw_mask=edge_fw_mask)
 
-        return self.transform(data)
+        data = self.transform(data)
+        torch.save(data, osp.join(self.cache, f'processed_{index}.pt'))
+        return data
+
+    def __getitem__(self, index) -> Data:
+        cached_data = os.path.join(self.cache, f'processed_{index}.pt')
+        if osp.exists(cached_data):
+            return torch.load(cached_data)
+        return self.processing(index)
 
     def __len__(self):
         return self.size
