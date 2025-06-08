@@ -517,7 +517,8 @@ target:
 ```
 Definitions of target edges.
 
-Each target edge is represented as a list containing two endpoint-nodes of the edge. `bl` is the class name, currently only one edge class is supported.
+Each target edge is represented as a list containing two endpoint-nodes of the edge.
+`bl` is an edge type, multiple edge types are now supported (see [#31](https://github.com/tzuhanchang/VyPER/pull/31)).
 
 
 ### target.neutrinos
