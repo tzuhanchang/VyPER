@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
  - Add hyperedge construction in `VyPER.data.VyPERDataset` ([#29](https://github.com/tzuhanchang/VyPER/pull/29))
+ - Add graph caching feature ([#33](https://github.com/tzuhanchang/VyPER/pull/33))
 
 ### Changed
  - Use label-independent `x_fw_mask` and `edge_fw_mask` construction ([#27](https://github.com/tzuhanchang/VyPER/pull/27))
@@ -16,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Fixed
+ - Fix non-default `edge_reduction` methods ([#30](https://github.com/tzuhanchang/VyPER/pull/30))
 
 
 ## [0.1.0-alpha] - 2025-05-27

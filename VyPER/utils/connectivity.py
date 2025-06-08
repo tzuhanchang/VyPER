@@ -37,12 +37,12 @@ def edge_reduction(src: Tensor, index: Tensor, reduction='mean', num_nodes: Opti
 
     if reduction.lower() == 'mean':
         out = out.mean(dim=2)
-    elif reduction.lower == 'sum':
-        out = out.min(dim=0)
-    elif reduction.lower == 'max':
-        out = out.max(dim=0)[0]
-    elif reduction.lower == 'min':
-        out = out.min(dim=0)[0]
+    elif reduction.lower() == 'sum':
+        out = out.min(dim=2)
+    elif reduction.lower() == 'max':
+        out = out.max(dim=2)[0]
+    elif reduction.lower() == 'min':
+        out = out.min(dim=2)[0]
     else:
         raise NotImplementedError(f"{reduction} reduction meethod is not available.")
 
