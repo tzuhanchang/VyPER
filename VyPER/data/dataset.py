@@ -1,4 +1,5 @@
 import os
+import shutil
 import yaml
 import h5py
 import math
@@ -18,14 +19,22 @@ from .transform import TransformFeatures
 
 
 class VyPERDataset(Dataset):
-    def __init__(self, root: str, config: str, training: bool=True) -> None:
+    def __init__(self, root: str, config: str, training: bool=True,
+                 cache_dir: str=None, force_reload: bool=False) -> None:
         self.root = root
         self.config = config
         self._train_mode = training
 
-        self.cache = osp.join(".cache",osp.splitext(osp.basename(self.root))[0])
+        if cache_dir is None:
+            self.cache = osp.join(".cache",osp.splitext(osp.basename(self.root))[0])
+        else:
+            self.cache = osp.join(cache_dir,osp.splitext(osp.basename(self.root))[0])
         if not osp.exists(self.cache):
             os.makedirs(self.cache)
+        else:
+            if force_reload:
+                shutil.rmtree(self.cache)
+                os.makedirs(self.cache)
 
         config = self._parse_config_file(self.config)
         self.node_input_names = list(config['input']['nodes'].keys())

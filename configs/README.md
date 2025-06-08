@@ -31,6 +31,8 @@ overwrites the default [training.learning_rate](#traininglearning_rate) to `0.00
     * [datasets.val_set](#datasetsval_set)
     * [datasets.predict_set](#datasetspredict_set)
     * [datasets.event_filter](#datasetsevent_filter)
+    * [datasets.cache_dir](#datasetscache_dir)
+    * [datasets.force_reload](#datasetsforce_reload)
     * [datasets.train_val_split](#datasetstrain_val_split)
     * [datasets.drop_last](#datasetsdrop_last)
 
@@ -106,6 +108,18 @@ Required for prediction.
 Name of a boolean vector saved in the dataset, e.g. `METADATA_FullyMatched`.
 
 As a result, VyPER will only use the events marked true in the `METADATA/FullyMatched` vector.
+
+
+### datasets.cache_dir
+
+Path of where the processed graphs are cached.
+
+If it is not provided, by default, VyPER will save the processed graphs in the `.cache` folder.
+
+
+### datasets.force_reload
+
+If set to `true`, VyPER will clean up the cached graphs and force all the graphs to be processed again.
 
 
 ### datasets.train_val_split
