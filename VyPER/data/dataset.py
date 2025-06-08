@@ -98,23 +98,27 @@ class VyPERDataset(Dataset):
         del edge_cantor
 
         # Read target hyperedge labels
-        hyperedge_cantor = []
-        hyperedge_exclusion = []
-        if len(config['target']['hyperedge'].keys()) > 1:
-            raise NotImplementedError("Currently only support one hyperedge target type.")
-        for key, value in config['target']['hyperedge'].items():
-            self.hyperedge_order = len(value[0])
-            for target in value:
-                assert self.hyperedge_order == len(target)
-                hyperedge_cantor.append(
-                    [self._cantor_pairing(*[int(x) for x in target[i].split('-')]) for i in range(len(target))])
-            hyperedge_exclusion.append([[int(target[i].split('-')[0]) for i in range(len(target))] for target in value])
-        self.target_hyperedge_cantor = torch.tensor(hyperedge_cantor,dtype=torch.float32).transpose(0,1)
-        self.hyperedge_exclusion = torch.tensor(
-            list(set(self.input_id.values()).difference(set(np.unique(np.array(hyperedge_exclusion).flatten()))))
-        )
-        del hyperedge_cantor
-        del hyperedge_exclusion
+        self._use_hyperedge = True if 'hyperedge' in config['target'].keys() else False
+        self.target_hyperedge_cantor = None
+        self.hyperedge_exclusion = None
+        if self._use_hyperedge:
+            hyperedge_cantor = []
+            hyperedge_exclusion = []
+            if len(config['target']['hyperedge'].keys()) > 1:
+                raise NotImplementedError("Currently only support one hyperedge target type.")
+            for key, value in config['target']['hyperedge'].items():
+                self.hyperedge_order = len(value[0])
+                for target in value:
+                    assert self.hyperedge_order == len(target)
+                    hyperedge_cantor.append(
+                        [self._cantor_pairing(*[int(x) for x in target[i].split('-')]) for i in range(len(target))])
+                hyperedge_exclusion.append([[int(target[i].split('-')[0]) for i in range(len(target))] for target in value])
+            self.target_hyperedge_cantor = torch.tensor(hyperedge_cantor,dtype=torch.float32).transpose(0,1)
+            self.hyperedge_exclusion = torch.tensor(
+                list(set(self.input_id.values()).difference(set(np.unique(np.array(hyperedge_exclusion).flatten()))))
+            )
+            del hyperedge_cantor
+            del hyperedge_exclusion
 
         # Read target neutrino labels
         self.neutrino_association = torch.tensor(config['target']['neutrinos']['associated_nodes'])
@@ -335,7 +339,7 @@ class VyPERDataset(Dataset):
         edge_index, edge_attr = self.build_edge_attr(x)
         u = self.build_glob_attr(self.file['INPUTS'],index)
         x_fw_mask, edge_fw_mask = self.get_masks(x, edge_index)
-        hyperedge_index = self.build_hyperedge_index(x)
+        hyperedge_index = self.build_hyperedge_index(x) if self._use_hyperedge else None
 
         if self._train_mode is False:
             data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, u=u,
@@ -345,9 +349,12 @@ class VyPERDataset(Dataset):
             node_cantor = self.get_node_cantor_id(self.file['LABELS'],index)
             edge_cantor = torch.cat([node_cantor[edge_index[0]].unsqueeze(0),
                                     node_cantor[edge_index[1]].unsqueeze(0)])
-            hyperedge_cantor = torch.cat([
-                node_cantor[hyperedge_index[i]].unsqueeze(0) for i in range(hyperedge_index.size(0))])
-            hyperedge_attr_t = self.build_hyperedge_target(hyperedge_cantor, hyperedge_index)
+            if self._use_hyperedge:
+                hyperedge_cantor = torch.cat([
+                    node_cantor[hyperedge_index[i]].unsqueeze(0) for i in range(hyperedge_index.size(0))])
+                hyperedge_attr_t = self.build_hyperedge_target(hyperedge_cantor, hyperedge_index)
+            else:
+                hyperedge_attr_t = None
             neutrino_t = self.build_neutrino_target(self.file['LABELS'],index)
             edge_attr_t = self.build_edge_target(edge_cantor, edge_index)
             data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, u=u,
