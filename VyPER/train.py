@@ -40,6 +40,8 @@ def Train(cfg : DictConfig) -> None:
         val_set = cfg['datasets']['val_set'],
         predict_set = None,
         event_filter = cfg['datasets']['event_filter'],
+        cache_dir = cfg['datasets']['cache_dir'],
+        force_reload = cfg['datasets']['force_reload'],
         batch_size = cfg['training']['batch_size'],
         percent_train_samples = cfg['datasets']['train_val_split'],
         drop_last = cfg['datasets']['drop_last'],

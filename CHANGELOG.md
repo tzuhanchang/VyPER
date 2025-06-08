@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+ - Add graph caching feature ([#33](https://github.com/tzuhanchang/VyPER/pull/33))
 
 ### Changed
  - Use label-independent `x_fw_mask` and `edge_fw_mask` construction ([#27](https://github.com/tzuhanchang/VyPER/pull/27))

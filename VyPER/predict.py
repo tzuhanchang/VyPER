@@ -47,6 +47,8 @@ def Predict(cfg : DictConfig) -> None:
     datamodule = VyPERDataModule(
         config = osp.join(hydra.utils.get_original_cwd(), f'configs/{HydraConfig.get().job.config_name}.yaml'),
         predict_set = cfg['datasets']['predict_set'],
+        cache_dir = cfg['datasets']['cache_dir'],
+        force_reload = cfg['datasets']['force_reload'],
         batch_size = cfg['predicting']['batch_size'],
         num_workers = cfg['device']['num_workers'],
         pin_memory = True if cfg['device']['accelerator']=="gpu" else False

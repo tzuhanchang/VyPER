@@ -18,6 +18,8 @@ class VyPERDataModule(LightningDataModule):
         val_set: Optional[str]=None,
         predict_set: Optional[str]=None,
         event_filter: Optional[str]=None,
+        cache_dir: Optional[str]=None,
+        force_reload: bool=False,
         batch_size: int=128,
         percent_train_samples: float=0.9,
         drop_last: bool=False,
@@ -32,6 +34,8 @@ class VyPERDataModule(LightningDataModule):
         self.val_set = val_set
         self.predict_set = predict_set
         self.event_filter = event_filter
+        self.cache_dir = cache_dir
+        self.force_reload = force_reload
         self.batch_size = batch_size
         self.percent_train_samples = percent_train_samples
         self.drop_last = drop_last
@@ -61,7 +65,8 @@ class VyPERDataModule(LightningDataModule):
                 print("Creating validation set using "
                     +f"{round(1-self.percent_train_samples*100,2)}% of the file.")
 
-                data = VyPERDataset(root=self.train_set, config=self.config, training=True)
+                data = VyPERDataset(root=self.train_set, config=self.config, training=True,
+                                    cache_dir=self.cache_dir, force_reload=self.force_reload)
 
                 self.node_in_channels = data.node_in_channels
                 self.edge_in_channels = data.edge_in_channels
@@ -77,8 +82,10 @@ class VyPERDataModule(LightningDataModule):
                     [self.percent_train_samples, 1-self.percent_train_samples])
                 del data
             else:
-                self.train_data = VyPERDataset(root=self.train_set, config=self.config, training=True)
-                self.val_data = VyPERDataset(root=self.val_set, config=self.config, training=True)
+                self.train_data = VyPERDataset(root=self.train_set, config=self.config, training=True,
+                                               cache_dir=self.cache_dir, force_reload=self.force_reload)
+                self.val_data = VyPERDataset(root=self.val_set, config=self.config, training=True,
+                                             cache_dir=self.cache_dir, force_reload=self.force_reload)
 
                 if self.node_in_channels is None:
                     self.node_in_channels = self.train_data.node_in_channels
@@ -101,7 +108,8 @@ class VyPERDataModule(LightningDataModule):
                     )
 
         if self.predict_set is not None:
-            self.predict_data = VyPERDataset(root=self.predict_set, config=self.config, training=False)
+            self.predict_data = VyPERDataset(root=self.predict_set, config=self.config, training=False,
+                                             cache_dir=self.cache_dir, force_reload=self.force_reload)
 
             if self.node_in_channels is None:
                 self.node_in_channels = self.predict_data.node_in_channels
