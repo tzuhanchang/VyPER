@@ -54,7 +54,7 @@ class VyPERDataModule(LightningDataModule):
         self.neutrino_momentum_func = None
         self.neutrino_4vector_func = None
         self.neutrino_4vector_loc = None
-        self.use_hyperedge = False
+        self._use_hyperedge = False
 
     def setup(self, stage: str) -> None:
         if self.train_set is not None:
@@ -69,7 +69,7 @@ class VyPERDataModule(LightningDataModule):
                 data = VyPERDataset(root=self.train_set, config=self.config, training=True,
                                     cache_dir=self.cache_dir, force_reload=self.force_reload)
 
-                self.use_hyperedge = data._use_hyperedge
+                self._use_hyperedge = data._use_hyperedge
                 self.node_in_channels = data.node_in_channels
                 self.edge_in_channels = data.edge_in_channels
                 self.glob_in_channels = data.glob_in_channels
@@ -89,7 +89,7 @@ class VyPERDataModule(LightningDataModule):
                 self.val_data = VyPERDataset(root=self.val_set, config=self.config, training=True,
                                              cache_dir=self.cache_dir, force_reload=self.force_reload)
 
-                self.use_hyperedge = self.train_data._use_hyperedge
+                self._use_hyperedge = self.train_data._use_hyperedge
                 if self.node_in_channels is None:
                     self.node_in_channels = self.train_data.node_in_channels
                     self.edge_in_channels = self.train_data.edge_in_channels
@@ -114,7 +114,7 @@ class VyPERDataModule(LightningDataModule):
             self.predict_data = VyPERDataset(root=self.predict_set, config=self.config, training=False,
                                              cache_dir=self.cache_dir, force_reload=self.force_reload)
 
-            self.use_hyperedge = self.predict_data._use_hyperedge
+            self._use_hyperedge = self.predict_data._use_hyperedge
             if self.node_in_channels is None:
                 self.node_in_channels = self.predict_data.node_in_channels
                 self.edge_in_channels = self.predict_data.edge_in_channels
@@ -148,7 +148,7 @@ class VyPERDataModule(LightningDataModule):
     def train_dataloader(self) -> DataLoader:
         return DataLoader(self.train_data,
                           batch_size=self.batch_size,
-                          follow_batch=['edge_attr', 'hyperedge_index'] if self.use_hyperedge else ['edge_attr'],
+                          follow_batch=['edge_attr', 'hyperedge_index'] if self._use_hyperedge else ['edge_attr'],
                           num_workers=self.num_workers,
                           pin_memory=self.pin_memory,
                           drop_last=self.drop_last,
@@ -157,7 +157,7 @@ class VyPERDataModule(LightningDataModule):
     def val_dataloader(self) -> DataLoader:
         return DataLoader(self.val_data,
                           batch_size=self.batch_size,
-                          follow_batch=['edge_attr', 'hyperedge_index'] if self.use_hyperedge else ['edge_attr'],
+                          follow_batch=['edge_attr', 'hyperedge_index'] if self._use_hyperedge else ['edge_attr'],
                           num_workers=self.num_workers,
                           pin_memory=self.pin_memory,
                           drop_last=self.drop_last,
@@ -166,7 +166,7 @@ class VyPERDataModule(LightningDataModule):
     def predict_dataloader(self) -> DataLoader:
         return DataLoader(self.predict_data,
                           batch_size=self.batch_size,
-                          follow_batch=['edge_attr', 'hyperedge_index'] if self.use_hyperedge else ['edge_attr'],
+                          follow_batch=['edge_attr', 'hyperedge_index'] if self._use_hyperedge else ['edge_attr'],
                           num_workers=self.num_workers,
                           pin_memory=self.pin_memory,
                           drop_last=self.drop_last,
