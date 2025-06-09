@@ -17,7 +17,7 @@ def EdgeLoss(edge_attr_out: Tensor, edge_attr_t: Tensor, edge_attr_batch: Tensor
 
     :rtype: :class:`Tensor`
     """
-    l = nn.functional.binary_cross_entropy(edge_attr_out, edge_attr_t.float(),reduction='none')
+    l = nn.functional.cross_entropy(edge_attr_out, edge_attr_t.float(),reduction='none')
     return scatter(l, edge_attr_batch, reduce=reduction)
 
 
