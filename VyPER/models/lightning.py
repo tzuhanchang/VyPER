@@ -3,7 +3,7 @@ import torch
 from torch import nn, optim
 from lightning import LightningModule
 from torch_geometric.utils import scatter, unbatch, unbatch_edge_index
-from torchmetrics.classification import BinaryAccuracy
+from torchmetrics.classification import MultilabelAccuracy
 from typing import Optional
 
 from .mpnn import MPNNs
@@ -18,6 +18,7 @@ class VyPER(LightningModule):
         node_in_channels: int,
         edge_in_channels: int,
         global_in_channels: int,
+        edge_out_channels: int,
         nu_out_channels: int,
         message_feats: int = 32,
         dropout: float = 0.01,
@@ -43,7 +44,7 @@ class VyPER(LightningModule):
             edge_in_channels=self.hparams.edge_in_channels,
             global_in_channels=self.hparams.global_in_channels,
             node_out_channels=self.hparams.message_feats,
-            edge_out_channels=1,
+            edge_out_channels=self.hparams.edge_out_channels,
             global_out_channels=self.hparams.message_feats,
             num_layers=self.hparams.num_message_layers,
             message_feats=self.hparams.message_feats,
@@ -60,7 +61,8 @@ class VyPER(LightningModule):
             num_sampling_steps=self.hparams.num_sampling_steps
         )
 
-        self.metric_edge = BinaryAccuracy(ignore_index=0)
+        self.metric_edge = MultilabelAccuracy(num_labels=self.hparams.edge_out_channels,
+                                              average='none', ignore_index=0)
 
     def forward(self, x, edge_index, edge_attr, u, batch, x_fw_mask, edge_fw_mask,
                 neutrino_t=None, train_mode=True, sampling=True):
@@ -68,7 +70,6 @@ class VyPER(LightningModule):
         x_out, edge_attr_out, u_out, nu_ctx = self.MessagePassing(
             x, edge_index, edge_attr, u, batch, x_fw_mask, edge_fw_mask
         )
-        edge_attr_out = nn.functional.sigmoid(edge_attr_out)
         # Neutrino diffusion
         num_neutrinos = scatter(x_fw_mask, index=batch, dim=0, dim_size=u.size(0), reduce='sum')
         nu_batch = torch.unique(batch).repeat_interleave(num_neutrinos)
@@ -130,7 +131,7 @@ class VyPER(LightningModule):
         nu_loss = DiffusionLoss(nu_loss, nu_batch, reduction='sum')
         loss = CombinedLoss(edge_loss, nu_loss, reduction=self.hparams.reduction, eta=self.hparams.eta)
 
-        edge_accuracy = self.metric_edge(edge_attr_out.flatten(), val_batch.edge_attr_t.float().flatten())
+        edge_accuracy = self.metric_edge(edge_attr_out, val_batch.edge_attr_t.float())
 
         # Logging
         self.log('loss/validation_edge_loss', edge_loss.mean(), batch_size=len(val_batch),
@@ -139,8 +140,9 @@ class VyPER(LightningModule):
                  on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
         self.log('loss/validation_loss', loss, batch_size=len(val_batch), on_step=True, on_epoch=True,
                  prog_bar=True, logger=True, sync_dist=True)
-        self.log('accuracy/edge', edge_accuracy, batch_size=len(val_batch), on_step=False, on_epoch=True,
-                 prog_bar=False, logger=True, sync_dist=True)
+        for i in range(self.hparams.edge_out_channels):
+            self.log(f'accuracy/edge_channel_{i}', edge_accuracy[i], batch_size=len(val_batch), on_step=False, on_epoch=True,
+                     prog_bar=False, logger=True, sync_dist=True)
 
         if batch_idx == final_val_batch_idx:
             p = get_neutrino_p4(nu_out,
@@ -175,6 +177,7 @@ class VyPER(LightningModule):
             pred_batch.x, pred_batch.edge_index, pred_batch.edge_attr, pred_batch.u,
             pred_batch.batch, pred_batch.x_fw_mask, pred_batch.edge_fw_mask,
             neutrino_t=None, train_mode=False, sampling=True)
+        edge_attr_out = torch.nn.functional.softmax(edge_attr_out, dim=1)
 
         for column in range(nu_out.size(1)):
             nu_out[:,column] = self.trainer.datamodule.nu_reverse_transform_methods[column](nu_out[:,column])

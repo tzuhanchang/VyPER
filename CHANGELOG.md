@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
  - Add hyperedge construction in `VyPER.data.VyPERDataset` ([#29](https://github.com/tzuhanchang/VyPER/pull/29))
+ - Add multi-label edge classification feature ([#31](https://github.com/tzuhanchang/VyPER/pull/31))
  - Add graph caching feature ([#33](https://github.com/tzuhanchang/VyPER/pull/33))
 
 ### Changed
