@@ -21,7 +21,7 @@ def EdgeLoss(edge_attr_out: Tensor, edge_attr_t: Tensor, edge_attr_batch: Tensor
     """
     l = nn.functional.cross_entropy(edge_attr_out, edge_attr_t.float(),reduction='none')
     if topo_max_num_edges is not None:
-        weight = scatter(edge_attr_t[:,:-1], edge_attr_batch, reduce='sum').sum(1)/topo_max_num_edges
+        weight = scatter(edge_attr_t[:,:-1], edge_attr_batch, reduce='sum').sum(1)/topo_max_num_edges.flatten()
         return scatter(l, edge_attr_batch, reduce=reduction) * weight
     return scatter(l, edge_attr_batch, reduce=reduction)
 
@@ -43,7 +43,7 @@ def HyperedgeLoss(x_out: Tensor, x_t: Tensor, x_t_batch: Tensor,
     l = nn.functional.binary_cross_entropy(x_out, x_t.float(),reduction='none')
     if topo_max_num_hyperedges is not None:
         weight = scatter(x_t, x_t_batch, reduce='sum')/topo_max_num_hyperedges
-        return scatter(l.flatten(), x_t_batch, reduce=reduction) * weight
+        return scatter(l.flatten(), x_t_batch, reduce=reduction) * weight.flatten()
     return scatter(l.flatten(), x_t_batch, reduce=reduction)
 
 
