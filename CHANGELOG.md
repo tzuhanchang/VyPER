@@ -9,13 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
  - Add hyperedge construction in `VyPER.data.VyPERDataset` ([#29](https://github.com/tzuhanchang/VyPER/pull/29))
+
+### Changed
+
+### Removed
+
+### Fixed
+
+
+## [0.1.1-alpha] - 2025-06-09
+
+### Added
  - Add multi-label edge classification feature ([#31](https://github.com/tzuhanchang/VyPER/pull/31))
  - Add graph caching feature ([#33](https://github.com/tzuhanchang/VyPER/pull/33))
 
 ### Changed
  - Use label-independent `x_fw_mask` and `edge_fw_mask` construction ([#27](https://github.com/tzuhanchang/VyPER/pull/27))
-
-### Removed
 
 ### Fixed
  - Fix non-default `edge_reduction` methods ([#30](https://github.com/tzuhanchang/VyPER/pull/30))
@@ -46,4 +55,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Fix the missing `x_fw_mask` and `edge_fw_mask` ([#6](https://github.com/tzuhanchang/VyPER/pull/6))
  - Fix input data not being transformed/scaled ([#3](https://github.com/tzuhanchang/VyPER/pull/3))
 
+[0.1.1-alpha]: https://github.com/tzuhanchang/VyPER/compare/v0.1.0-alpha...v0.1.1-alpha
 [0.1.0-alpha]: https://github.com/tzuhanchang/VyPER/releases/tag/v0.1.0-alpha
