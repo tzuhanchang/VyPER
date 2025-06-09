@@ -122,10 +122,10 @@ class VyPERDataset(Dataset):
             self.hyperedge_exclusion = torch.tensor(
                 list(set(self.input_id.values()).difference(set(np.unique(np.array(hyperedge_exclusion).flatten()))))
             )
-        else:
-            assert self.topo_max_num_hyperedges == 0
             del hyperedge_cantor
             del hyperedge_exclusion
+        else:
+            assert self.topo_max_num_hyperedges == 0
 
         # Read target neutrino labels
         self.neutrino_association = torch.tensor(config['target']['neutrinos']['associated_nodes'])
