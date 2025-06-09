@@ -320,6 +320,7 @@ This section will use the sample $t\bar{t}$ dilepton final-state dataset as an e
 
 - [target](#target)
 
+    * [target.topology](#targettopology)
     * [target.edge](#targetedge)
     * [target.neutrinos](#targetneutrinos)
     * [target.hyperedge](#targethyperedge)
@@ -500,6 +501,26 @@ In the sample $t\bar{t}$ dilepton final-state dataset, the final states are labe
 
 Therefore, `'0-1'` represents the true $b$ jet from the top quark, `'2-2'` represents the $\mu^-$ from the $W^-$ boson of the anti-top quark, and so on.
 
+
+### target.topology
+
+```yaml
+target:
+  ...
+  topology:
+    edge: 4
+    hyperedge: 0
+    neutrinos: 2
+  ...
+```
+
+Definitions of target topology:
+  - `edge`: maximum number of target edges could exist in a graph,
+  e.g. $2\times 2$ in the example dileptonic $t\bar{t}$ event - 2 bi-directional target `bl` edges.
+  - `hyperedge`: maximum number of target hyperedges could exist in a graph.
+  - `neutrinos`: number of neutrinos in a graph.
+
+These values are only applicable to the training, they are used for the calculation of the weighted loss.
 
 ### target.edge
 

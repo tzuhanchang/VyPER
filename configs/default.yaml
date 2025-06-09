@@ -103,6 +103,11 @@ input:
     - x
 
 target:
+  topology:
+    edge: 4
+    hyperedge: 0
+    neutrinos: 2
+
   edge:
     bl:
       - ['0-1','1-1'] # b el+
