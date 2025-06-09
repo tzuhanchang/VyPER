@@ -60,6 +60,7 @@ def Train(cfg : DictConfig) -> None:
         message_feats = cfg['network']['message_feats'],
         dropout = cfg['training']['dropout'],
         num_message_layers = cfg['network']['num_message_layers'],
+        use_hyperedge = 'hyperedge' in cfg['target'].keys(),
         hyperedge_feats = cfg['network']['hyperedge_feats'],
         hyperedge_order = cfg['network']['hyperedge_order'],
         num_sampling_steps = cfg['network']['num_sampling_steps'],
