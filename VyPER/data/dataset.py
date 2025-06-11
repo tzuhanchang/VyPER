@@ -104,21 +104,23 @@ class VyPERDataset(Dataset):
         # Read target hyperedge labels
         self._use_hyperedge = True if 'hyperedge' in config['target'].keys() else False
         self.target_hyperedge_cantor = None
+        self.hyperedge_out_channels = None
         self.hyperedge_exclusion = None
         if self._use_hyperedge:
             assert self.topo_max_num_hyperedges > 0
-            hyperedge_cantor = []
+            hyperedge_cantor = {}
             hyperedge_exclusion = []
-            if len(config['target']['hyperedge'].keys()) > 1:
-                raise NotImplementedError("Currently only support one hyperedge target type.")
             for key, value in config['target']['hyperedge'].items():
+                hyperedge_cantor.update({key: []})
                 self.hyperedge_order = len(value[0])
                 for target in value:
                     assert self.hyperedge_order == len(target)
-                    hyperedge_cantor.append(
+                    hyperedge_cantor[key].append(
                         [self._cantor_pairing(*[int(x) for x in target[i].split('-')]) for i in range(len(target))])
-                hyperedge_exclusion.append([[int(target[i].split('-')[0]) for i in range(len(target))] for target in value])
-            self.target_hyperedge_cantor = torch.tensor(hyperedge_cantor,dtype=torch.float32).transpose(0,1)
+                    hyperedge_exclusion.append([int(target[i].split('-')[0]) for i in range(len(target))])
+                hyperedge_cantor[key] = torch.tensor(hyperedge_cantor[key],dtype=torch.float32).transpose(0,1)
+            self.target_hyperedge_cantor = hyperedge_cantor
+            self.hyperedge_out_channels = len(self.target_hyperedge_cantor.keys()) + 1
             self.hyperedge_exclusion = torch.tensor(
                 list(set(self.input_id.values()).difference(set(np.unique(np.array(hyperedge_exclusion).flatten()))))
             )
@@ -318,11 +320,15 @@ class VyPERDataset(Dataset):
     def build_hyperedge_target(self, hyperedge_cantor_id: Tensor,
                                hyperedge_index: Tensor) -> Tensor:
         hyperedge_search = torch.sort(hyperedge_cantor_id,0)[0].unsqueeze(2)
-        cantor_id = self.target_hyperedge_cantor.unsqueeze(1)
-        matches = torch.all(hyperedge_search==cantor_id,dim=0)
-        indices = matches.nonzero()[:,0]
-        hyperedge_attr_t = torch.zeros((hyperedge_index.size(1),1),dtype=torch.float32)
-        hyperedge_attr_t[indices] = 1
+        hyperedge_attr_t = torch.zeros((hyperedge_index.size(1),self.hyperedge_out_channels),dtype=torch.float32)
+        loc = 0
+        for key, value in self.target_hyperedge_cantor.items():
+            cantor_id = value.unsqueeze(1)
+            matches = torch.all(hyperedge_search==cantor_id,dim=0)
+            indices = matches.nonzero()[:,0]
+            hyperedge_attr_t[indices,loc] = 1
+            loc += 1
+        hyperedge_attr_t[~torch.any(hyperedge_attr_t==1,dim=1),self.hyperedge_out_channels-1] = 1
         return hyperedge_attr_t
 
     def get_masks(self, x: Tensor, edge_index: Tensor) -> Tuple[Tensor,Tensor]:
