@@ -40,11 +40,11 @@ def HyperedgeLoss(x_out: Tensor, x_t: Tensor, x_t_batch: Tensor,
 
     :rtype: :class:`Tensor`
     """
-    l = nn.functional.binary_cross_entropy(x_out, x_t.float(),reduction='none')
+    l = nn.functional.cross_entropy(x_out, x_t.float(),reduction='none')
     if topo_max_num_hyperedges is not None:
-        weight = scatter(x_t, x_t_batch, reduce='sum')/topo_max_num_hyperedges
-        return scatter(l.flatten(), x_t_batch, reduce=reduction) * weight.flatten()
-    return scatter(l.flatten(), x_t_batch, reduce=reduction)
+        weight = scatter(x_t[:,:-1], x_t_batch, reduce='sum').sum(1)/topo_max_num_hyperedges.flatten()
+        return scatter(l, x_t_batch, reduce=reduction) * weight
+    return scatter(l, x_t_batch, reduce=reduction)
 
 
 def DiffusionLoss(nu_loss: Tensor, nu_batch: Tensor, reduction: str='mean') -> Tensor:

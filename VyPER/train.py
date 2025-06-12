@@ -56,6 +56,7 @@ def Train(cfg : DictConfig) -> None:
         edge_in_channels = len(cfg['input']['edge_features']),
         global_in_channels = len(cfg['input']['global_features']),
         edge_out_channels = len(cfg['target']['edge'])+1,
+        hyperedge_out_channels = len(cfg['target']['hyperedge'])+1,
         nu_out_channels = len(cfg['target']['neutrinos']['features']),
         message_feats = cfg['network']['message_feats'],
         dropout = cfg['training']['dropout'],

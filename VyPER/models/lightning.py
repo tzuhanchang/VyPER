@@ -20,6 +20,7 @@ class VyPER(LightningModule):
         edge_in_channels: int,
         global_in_channels: int,
         edge_out_channels: int,
+        hyperedge_out_channels: int,
         nu_out_channels: int,
         message_feats: int = 32,
         dropout: float = 0.01,
@@ -66,12 +67,13 @@ class VyPER(LightningModule):
         if self.hparams.use_hyperedge:
             self.Hyperedge = HyperedgeBlock(
                 node_in_channels=self.hparams.message_feats,
-                node_out_channels=1,
+                node_out_channels=self.hparams.hyperedge_out_channels,
                 global_in_channels=self.hparams.message_feats,
                 message_feats=self.hparams.hyperedge_feats,
                 dropout=self.hparams.dropout
             )
-            self.metric_hyperedge = BinaryAccuracy(ignore_index=0)
+            self.metric_hyperedge = MultilabelAccuracy(num_labels=self.hparams.hyperedge_out_channels,
+                                                       average='none', ignore_index=0)
 
         self.metric_edge = MultilabelAccuracy(num_labels=self.hparams.edge_out_channels,
                                               average='none', ignore_index=0)
@@ -172,11 +174,13 @@ class VyPER(LightningModule):
         if self.hparams.use_hyperedge:
             hyperedge_loss = HyperedgeLoss(hyperedge_out, val_batch.hyperedge_attr_t, hyperedge_batch,
                                            val_batch.topo_max_num_hyperedges)
-            hyperedge_accuracy = self.metric_hyperedge(hyperedge_out, val_batch.hyperedge_attr_t.float())
+            hyperedge_accuracy = self.metric_hyperedge(torch.nn.functional.softmax(hyperedge_out, dim=1),
+                                                       val_batch.hyperedge_attr_t.float())
             self.log('loss/validation_hyperedge_loss', hyperedge_loss.mean(), batch_size=len(val_batch),
                  on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
-            self.log(f'accuracy/hyperedge', hyperedge_accuracy, batch_size=len(val_batch), on_step=False, on_epoch=True,
-                     prog_bar=False, logger=True, sync_dist=True)
+            for i in range(self.hparams.hyperedge_out_channels):
+                self.log(f'accuracy/hyperedge_channel_{i}', hyperedge_accuracy[i], batch_size=len(val_batch), on_step=False,
+                         on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
         else:
             hyperedge_loss = None
 
@@ -186,7 +190,8 @@ class VyPER(LightningModule):
         loss = CombinedLoss(edge_loss, nu_loss, hyperedge_loss, reduction=self.hparams.reduction,
                             alpha=self.hparams.alpha, eta=self.hparams.eta)
 
-        edge_accuracy = self.metric_edge(edge_attr_out, val_batch.edge_attr_t.float())
+        edge_accuracy = self.metric_edge(torch.nn.functional.softmax(edge_attr_out, dim=1),
+                                         val_batch.edge_attr_t.float())
 
         # Logging
         self.log('loss/validation_edge_loss', edge_loss.mean(), batch_size=len(val_batch),
@@ -237,6 +242,7 @@ class VyPER(LightningModule):
         )
         if self.hparams.use_hyperedge:
             edge_attr_out, hyperedge_out, hyperedge_batch, nu_out, nu_batch = out
+            hyperedge_out = torch.nn.functional.softmax(hyperedge_out, dim=1)
         else:
             edge_attr_out, nu_out, nu_batch = out
 
@@ -249,4 +255,7 @@ class VyPER(LightningModule):
         edge_index = unbatch_edge_index(pred_batch.edge_index, pred_batch.batch,
                                         batch_size=self.trainer.datamodule.batch_size)
         nu_out = unbatch(nu_out, nu_batch, dim=0)
+        if self.hparams.use_hyperedge:
+            hyperedge_out = unbatch(hyperedge_out, hyperedge_batch.type(torch.int64))
+            return edge_out, edge_index, hyperedge_out, nu_out
         return edge_out, edge_index, nu_out

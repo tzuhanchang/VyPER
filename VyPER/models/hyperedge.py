@@ -70,5 +70,4 @@ class HyperedgeBlock(nn.Module):
         x_hyper = self.__hyperedge_finding__(x_hyper, hyperedge_index, r)
         x_hyper_hat = self.weighting(x_hyper, batch_hyper)
         out = torch.cat([x_hyper, x_hyper_hat], dim=1).float()
-        out = self.final_hyperedge_layer(out)
-        return nn.functional.sigmoid(out), batch_hyper
+        return self.final_hyperedge_layer(out), batch_hyper
