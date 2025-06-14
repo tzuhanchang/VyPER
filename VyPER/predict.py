@@ -63,6 +63,8 @@ def Predict(cfg : DictConfig) -> None:
     writer = PredictionWriter(
         cfg['predicting']['save_as'],
         edge_out_channels=len(cfg['target']['edge'])+1,
+        hyperedge_out_channels=len(cfg['target']['hyperedge'])+1 if 'hyperedge' in cfg['target'].keys() else None,
+        hyperedge_order=len(list(cfg['target']['hyperedge'].values())[0][0]) if 'hyperedge' in cfg['target'].keys() else None,
         edge_reduction=cfg['predicting']['edge_reduction']
     )
 

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+ - Add hyperedge model ([#35](https://github.com/tzuhanchang/VyPER/pull/35))
  - Add hyperedge construction in `VyPER.data.VyPERDataset` ([#29](https://github.com/tzuhanchang/VyPER/pull/29))
 
 ### Changed

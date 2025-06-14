@@ -1,8 +1,9 @@
 import torch
 
 from torch import Tensor
+from torch_geometric.utils import degree
 from itertools import combinations
-from typing import Union, Tuple, Optional
+from typing import Union, Tuple, List, Optional
 
 
 def edge_reduction(src: Tensor, index: Tensor, reduction='mean', num_nodes: Optional[int]=None,
@@ -47,3 +48,16 @@ def edge_reduction(src: Tensor, index: Tensor, reduction='mean', num_nodes: Opti
         raise NotImplementedError(f"{reduction} reduction meethod is not available.")
 
     return (out, edge_index_comb) if return_reduced_indices else out
+
+
+def unbatch_hyperedge_index(hyperedge_index: Tensor, batch: Tensor) -> List[Tensor]:
+    r"""Splits the :obj:`hyperedge_index` according to a :obj:`batch` vector.
+
+    Args:
+        hyperedge_index (Tensor): Hyperedge index tensor.
+        batch (Tensor): The batch vector.
+
+    :rtype: :class:`List[Tensor]`
+    """
+    out = torch.split_with_sizes(hyperedge_index, degree(batch).to(torch.int64).tolist(), dim=1)
+    return [x-torch.min(x) for x in out]
