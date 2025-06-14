@@ -5,6 +5,17 @@ from torch_geometric.utils import scatter
 from typing import Optional
 
 
+def computeBatchWeight(target: Tensor) -> Tensor:
+    weight = [target.size(0) / (torch.sum(target[:,i]) * target.size(1)).unsqueeze(0)
+              for i in range(target.size(1))]
+    return torch.cat(weight)
+
+
+def computeTopoWeight(target: Tensor, batch: Tensor, topo_max: Tensor) -> Tensor:
+    weight = scatter(target[:,:-1], batch, reduce='sum').sum(1)/topo_max.flatten()
+    return weight
+
+
 def EdgeLoss(edge_attr_out: Tensor, edge_attr_t: Tensor, edge_attr_batch: Tensor,
              topo_max_num_edges: Optional[Tensor]=None, reduction: str='mean') -> Tensor:
     r"""Calculate per graph edge loss.
@@ -19,10 +30,11 @@ def EdgeLoss(edge_attr_out: Tensor, edge_attr_t: Tensor, edge_attr_batch: Tensor
 
     :rtype: :class:`Tensor`
     """
-    l = nn.functional.cross_entropy(edge_attr_out, edge_attr_t.float(),reduction='none')
+    batch_weight = computeBatchWeight(edge_attr_t.float())
+    l = nn.functional.cross_entropy(edge_attr_out, edge_attr_t.float(),reduction='none', weight=batch_weight)
     if topo_max_num_edges is not None:
-        weight = scatter(edge_attr_t[:,:-1], edge_attr_batch, reduce='sum').sum(1)/topo_max_num_edges.flatten()
-        return scatter(l, edge_attr_batch, reduce=reduction) * weight
+        topo_weight = computeTopoWeight(edge_attr_t, edge_attr_batch, topo_max_num_edges)
+        return scatter(l, edge_attr_batch, reduce=reduction) * topo_weight
     return scatter(l, edge_attr_batch, reduce=reduction)
 
 
@@ -40,10 +52,11 @@ def HyperedgeLoss(x_out: Tensor, x_t: Tensor, x_t_batch: Tensor,
 
     :rtype: :class:`Tensor`
     """
-    l = nn.functional.cross_entropy(x_out, x_t.float(),reduction='none')
+    batch_weight = computeBatchWeight(x_t.float())
+    l = nn.functional.cross_entropy(x_out, x_t.float(),reduction='none', weight=batch_weight)
     if topo_max_num_hyperedges is not None:
-        weight = scatter(x_t[:,:-1], x_t_batch, reduce='sum').sum(1)/topo_max_num_hyperedges.flatten()
-        return scatter(l, x_t_batch, reduce=reduction) * weight
+        topo_weight = computeTopoWeight(x_t, x_t_batch, topo_max_num_hyperedges)
+        return scatter(l, x_t_batch, reduce=reduction) * topo_weight
     return scatter(l, x_t_batch, reduce=reduction)
 
 
