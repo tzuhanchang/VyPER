@@ -20,11 +20,15 @@ class PredictionWriter(BasePredictionWriter):
     :type: :obj:`None`
     """
     def __init__(self, output_dir, edge_out_channels: int,
+                 hyperedge_out_channels: Optional[int]=None,
+                 hyperedge_order: Optional[int]=None,
                  edge_reduction: Optional[str]=None) -> None:
         super().__init__(write_interval='batch')
 
         self.output_dir = output_dir
         self.edge_out_channels = edge_out_channels
+        self.hyperedge_out_channels = hyperedge_out_channels
+        self.hyperedge_order = hyperedge_order
         self.edge_reduction = edge_reduction
         self.num_pred_events = None
         self.batch_size = None
@@ -41,12 +45,21 @@ class PredictionWriter(BasePredictionWriter):
         value_dtype = h5py.vlen_dtype(np.dtype('float32'))
 
         self.edge_index = data_group.create_dataset(
-            "EdgeIndex", (self.num_pred_events,2,),dtype=index_dtype)
+            "EdgeIndex", (self.num_pred_events,2),dtype=index_dtype)
         self.edge_out = data_group.create_dataset(
-            "EdgeSoftP", (self.num_pred_events,self.edge_out_channels,), dtype=value_dtype)
+            "EdgeSoftP", (self.num_pred_events,self.edge_out_channels), dtype=value_dtype)
         self.neutrino_out = data_group.create_dataset(
-            "Neutrino", (self.num_pred_events,2,), dtype=value_dtype)
+            "Neutrino", (self.num_pred_events,2), dtype=value_dtype)
             # TODO: This need to be updated for different neutrino count
+        if self.hyperedge_out_channels is not None:
+            assert self.hyperedge_order is not None
+            self.hyperedge_index = data_group.create_dataset(
+                "HyperedgeIndex", (self.num_pred_events,self.hyperedge_order), dtype=index_dtype)
+            self.hyperedge_out = data_group.create_dataset(
+                "HyperedgeSoftP", (self.num_pred_events,self.hyperedge_out_channels), dtype=value_dtype)
+        else:
+            self.hyperedge_index = None
+            self.hyperedge_out = None
 
     @torch.no_grad()
     def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, 
@@ -57,7 +70,10 @@ class PredictionWriter(BasePredictionWriter):
             self.num_pred_events = len(trainer.datamodule.predict_data)
             self.prepare_output_file()
 
-        edge_out, edge_index, nu_out = prediction
+        if self.hyperedge_out_channels is not None:
+            edge_out, edge_index, hyperedge_out, hyperedge_index, nu_out = prediction
+        else:
+            edge_out, edge_index, nu_out = prediction
 
         _num_events = len(edge_out)
         for i in tqdm(range(_num_events),
@@ -77,6 +93,9 @@ class PredictionWriter(BasePredictionWriter):
             self.edge_out[idx_save] = reduced_edge.transpose(0,1).detach().cpu().numpy()
             self.edge_index[idx_save] = reduced_edge_index.detach().cpu().numpy()
             self.neutrino_out[idx_save] = nu_out[i].detach().cpu().numpy()
+            if self.hyperedge_out_channels is not None:
+                self.hyperedge_out[idx_save] = hyperedge_out[i].transpose(0,1).detach().cpu().numpy()
+                self.hyperedge_index[idx_save] = hyperedge_index[i].detach().cpu().numpy()
 
         # Close the file when the final event is written
         if (idx_save + 1) == self.num_pred_events:

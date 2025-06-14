@@ -10,7 +10,7 @@ from .mpnn import MPNNs
 from .hyperedge import HyperedgeBlock
 from .diffusion import NeutrinoDiffusion
 from .loss import EdgeLoss, HyperedgeLoss, DiffusionLoss, CombinedLoss
-from VyPER.utils import get_neutrino_p4
+from VyPER.utils import get_neutrino_p4, unbatch_hyperedge_index
 
 
 class VyPER(LightningModule):
@@ -257,5 +257,6 @@ class VyPER(LightningModule):
         nu_out = unbatch(nu_out, nu_batch, dim=0)
         if self.hparams.use_hyperedge:
             hyperedge_out = unbatch(hyperedge_out, hyperedge_batch.type(torch.int64))
-            return edge_out, edge_index, hyperedge_out, nu_out
+            hyperedge_index = unbatch_hyperedge_index(pred_batch.hyperedge_index, hyperedge_batch.type(torch.int64))
+            return edge_out, edge_index, hyperedge_out, hyperedge_index, nu_out
         return edge_out, edge_index, nu_out
