@@ -49,21 +49,21 @@ def Train(cfg : DictConfig) -> None:
         pin_memory = True if cfg['device']['accelerator']=="gpu" else False
     )
 
-    # print(datamodule.node_in_channels)
+    _use_hyperedge = 'hyperedge' in cfg['target'].keys()
 
     model = VyPER(
         node_in_channels = len(cfg['input']['node_features'])+1,
         edge_in_channels = len(cfg['input']['edge_features']),
         global_in_channels = len(cfg['input']['global_features']),
         edge_out_channels = len(cfg['target']['edge'])+1,
-        hyperedge_out_channels = len(cfg['target']['hyperedge'])+1,
+        hyperedge_out_channels = len(cfg['target']['hyperedge'])+1 if _use_hyperedge else None,
         nu_out_channels = len(cfg['target']['neutrinos']['features']),
         message_feats = cfg['network']['message_feats'],
         dropout = cfg['training']['dropout'],
         num_message_layers = cfg['network']['num_message_layers'],
-        use_hyperedge = 'hyperedge' in cfg['target'].keys(),
-        hyperedge_feats = cfg['network']['hyperedge_feats'],
-        hyperedge_order = cfg['network']['hyperedge_order'],
+        use_hyperedge = _use_hyperedge,
+        hyperedge_feats = cfg['network']['hyperedge_feats'] if _use_hyperedge else None,
+        hyperedge_order = cfg['network']['hyperedge_order'] if _use_hyperedge else None,
         num_sampling_steps = cfg['network']['num_sampling_steps'],
         num_attn_heads = cfg['network']['num_attn_heads'],
         optimizer = cfg['training']['optimizer'],
