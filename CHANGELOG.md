@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Fixed
+ - Fix training for setups with no `target.hyperedge` key ([#36](https://github.com/tzuhanchang/VyPER/pull/36))
 
 
 ## [0.1.1-alpha] - 2025-06-09
