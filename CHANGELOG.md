@@ -8,12 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
- - Add hyperedge model ([#35](https://github.com/tzuhanchang/VyPER/pull/35))
- - Add hyperedge construction in `VyPER.data.VyPERDataset` ([#29](https://github.com/tzuhanchang/VyPER/pull/29))
 
 ### Changed
 
 ### Removed
+
+### Fixed
+
+
+## [0.2.0-alpha] - 2025-06-18
+
+### Added
+ - Add hyperedge model ([#35](https://github.com/tzuhanchang/VyPER/pull/35))
+ - Add hyperedge construction in `VyPER.data.VyPERDataset` ([#29](https://github.com/tzuhanchang/VyPER/pull/29))
 
 ### Fixed
  - Fix training for setups with no `target.hyperedge` key ([#36](https://github.com/tzuhanchang/VyPER/pull/36))
@@ -57,5 +64,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Fix the missing `x_fw_mask` and `edge_fw_mask` ([#6](https://github.com/tzuhanchang/VyPER/pull/6))
  - Fix input data not being transformed/scaled ([#3](https://github.com/tzuhanchang/VyPER/pull/3))
 
+[0.2.0-alpha]: https://github.com/tzuhanchang/VyPER/compare/v0.1.1-alpha...v0.2.0-alpha
 [0.1.1-alpha]: https://github.com/tzuhanchang/VyPER/compare/v0.1.0-alpha...v0.1.1-alpha
 [0.1.0-alpha]: https://github.com/tzuhanchang/VyPER/releases/tag/v0.1.0-alpha
