@@ -24,4 +24,4 @@ dependencies:
     - hydra-core
     - rich
     - optuna
-    - optuna-integration[pytorch_lightning]
+    - optuna-dashboard

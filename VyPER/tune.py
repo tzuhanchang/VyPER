@@ -5,7 +5,6 @@ import torch
 import lightning.pytorch as pl
 
 from lightning.pytorch.loggers import TensorBoardLogger
-from optuna.integration import PyTorchLightningPruningCallback
 from VyPER.data import VyPERDataModule
 from VyPER.models import VyPER
 from hydra.core.hydra_config import HydraConfig
