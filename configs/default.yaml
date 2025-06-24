@@ -53,56 +53,56 @@ device:
 #     Hyperparameter Tuning Settings     #
 # -------------------------------------- #
 tune:
-  tuner_settings:
-    n_trials:   100
-    epochs:     5
-    study_name: VyPER-Tuning
-    save_dir:   ./tuning
-    sqlite:     sqlite:///tuning.db
-    monitors:
-      - accuracy/dR_mean
-      - loss/validation_loss
-    directions:
-      - minimize
-      - minimize
+  n_trials:   100
+  epochs:     5
+  study_name: VyPER-Tuning
+  save_dir:   ./tuning
+  sqlite:     sqlite:///tuning.db
+  monitors:
+    - accuracy/dR_mean
+    - loss/validation_loss
+  directions:
+    - minimize
+    - minimize
 
-  network:
-    message_feats:
-      - int
-      - 32
-      - 128
-      - 16
-    num_attn_heads:
-      - int
-      - 4
-      - 32
-      - 4
-    num_message_layers:
-      - int
-      - 3
-      - 6
+  hyperparameters:
+    network:
+      message_feats:
+        - int
+        - 32
+        - 128
+        - 16
+      num_attn_heads:
+        - int
+        - 4
+        - 32
+        - 4
+      num_message_layers:
+        - int
+        - 3
+        - 6
 
-  training:
-    learning_rate:
-      - loguniform
-      - 0.0001
-      - 0.001
-    weight_decay:
-      - loguniform
-      - 0.001
-      - 0.01
-    alpha:
-      - float
-      - 0.1
-      - 0.9
-    eta:
-      - float
-      - 0.1
-      - 0.9
-    dropout:
-      - loguniform
-      - 0.0001
-      - 0.01
+    training:
+      learning_rate:
+        - loguniform
+        - 0.0001
+        - 0.001
+      weight_decay:
+        - loguniform
+        - 0.001
+        - 0.01
+      alpha:
+        - float
+        - 0.1
+        - 0.9
+      eta:
+        - float
+        - 0.1
+        - 0.9
+      dropout:
+        - loguniform
+        - 0.0001
+        - 0.01
 
 
 # -------------------------------------- #

@@ -10,9 +10,6 @@ from VyPER.models import VyPER
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig, OmegaConf
 
-CONFIG_PATH = None
-CONFIGS = None
-
 
 def objective(trial: optuna.trial.Trial) -> float:
     r"""An `objective` function to be optimised.
@@ -22,9 +19,7 @@ def objective(trial: optuna.trial.Trial) -> float:
         option_file (str, optional): `.json` file, stores training related
             parameters. (default: :obj:`str`=None)
     """
-    for key, value in CONFIGS['tune'].items():
-        if key not in CONFIGS.keys():
-            continue
+    for key, value in CONFIGS['tune']['hyperparameters'].items():
         for parm, tune_settings in value.items():
             var_type = str(tune_settings[0]).lower()
             lower, upper = tune_settings[1], tune_settings[2]
@@ -34,7 +29,6 @@ def objective(trial: optuna.trial.Trial) -> float:
             except IndexError:
                 step = None
                 _with_step = False
-
             if var_type == 'int':
                 if _with_step:
                     CONFIGS[key][parm] = trial.suggest_int(parm, lower, upper, step=step)
@@ -91,10 +85,10 @@ def objective(trial: optuna.trial.Trial) -> float:
         trainer = pl.Trainer(
             accelerator = CONFIGS['device']['accelerator'],
             devices = CONFIGS['device']['num_devices'],
-            max_epochs = CONFIGS['tune']['tuner_settings']['epochs'],
+            max_epochs = CONFIGS['tune']['epochs'],
             enable_checkpointing=False,
             logger = TensorBoardLogger(
-                save_dir=CONFIGS['tune']['tuner_settings']['save_dir'],
+                save_dir=CONFIGS['tune']['save_dir'],
                 name="",
                 log_graph=True
             )
@@ -109,7 +103,7 @@ def objective(trial: optuna.trial.Trial) -> float:
         raise optuna.TrialPruned()
 
     return tuple([trainer.callback_metrics[monitor].item()
-                  for monitor in CONFIGS['tune']['tuner_settings']['monitors']])
+                  for monitor in CONFIGS['tune']['monitors']])
 
 
 @hydra.main(version_base=None, config_path="../configs", config_name="default")
@@ -121,22 +115,24 @@ def Tune(cfg : DictConfig) -> None:
     CONFIGS = cfg
 
     study = optuna.create_study(
-        storage        = CONFIGS['tune']['tuner_settings']['sqlite'],
-        study_name     = CONFIGS['tune']['tuner_settings']['study_name'],
-        directions     = CONFIGS['tune']['tuner_settings']['directions'],
+        storage        = CONFIGS['tune']['sqlite'],
+        study_name     = CONFIGS['tune']['study_name'],
+        directions     = CONFIGS['tune']['directions'],
         load_if_exists = True,
         pruner         = optuna.pruners.MedianPruner()
     )
 
-    study.optimize(objective, n_trials=CONFIGS['tune']['tuner_settings']['n_trials'])
+    study.optimize(objective, n_trials=CONFIGS['tune']['n_trials'])
 
     print("Number of finished trials: {}".format(len(study.trials)))
-    print("Best trial:")
-    trial = study.best_trial
-    print("  Value: {}".format(trial.value))
-    print("  Params: ")
-    for key, value in trial.params.items():
-        print("    {}: {}".format(key, value))
+    print("Best trials:")
+    trials = study.best_trials
+    for trial in trials:
+        print("  Number: {}".format(trial.number))
+        print("  Values: {}".format(trial.values))
+        print("  Params: ")
+        for key, value in trial.params.items():
+            print("    {}: {}".format(key, value))
 
 if __name__ == '__main__':
     torch.set_float32_matmul_precision('medium')
