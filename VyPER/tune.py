@@ -109,7 +109,7 @@ def objective(trial: optuna.trial.Trial) -> float:
         trial.set_user_attr("error_message", str(e))
         raise optuna.TrialPruned()
 
-    return tuple([trainer.callback_metrics[monitor].item
+    return tuple([trainer.callback_metrics[monitor].item()
                   for monitor in CONFIGS['tune']['tuner_settings']['monitors']])
 
 
