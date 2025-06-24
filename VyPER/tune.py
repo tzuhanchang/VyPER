@@ -98,8 +98,7 @@ def objective(trial: optuna.trial.Trial) -> float:
 
     except Exception as e:
         print(f"Trial {trial.number} failed: {str(e)}")
-        trial.set_user_attr("failed", True)
-        trial.set_user_attr("error_message", str(e))
+        trial.set_user_attr("Trial failed due to an unexpected error:", str(e))
         raise optuna.TrialPruned()
 
     return tuple([trainer.callback_metrics[monitor].item()
