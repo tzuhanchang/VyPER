@@ -81,24 +81,24 @@ tune:
   training:
     learning_rate:
       - loguniform
-      - 0.001
       - 0.0001
+      - 0.001
     weight_decay:
       - loguniform
-      - 0.01
       - 0.001
+      - 0.01
     alpha:
-      - uniform
+      - float
       - 0.1
       - 0.9
     eta:
-      - uniform
+      - float
       - 0.1
       - 0.9
     dropout:
       - loguniform
-      - 0.01
       - 0.0001
+      - 0.01
 
 
 # -------------------------------------- #

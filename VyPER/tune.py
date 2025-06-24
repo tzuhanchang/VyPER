@@ -38,21 +38,15 @@ def objective(trial: optuna.trial.Trial) -> float:
 
             if var_type == 'int':
                 if _with_step:
-                    CONFIGS[key][parm] = trial.suggest_int(parm, lower, upper, step)
+                    CONFIGS[key][parm] = trial.suggest_int(parm, lower, upper, step=step)
                 else:
                     CONFIGS[key][parm] = trial.suggest_int(parm, lower, upper)
             elif var_type == 'float':
-                CONFIGS[key][parm] = trial.suggest_float(parm, lower, upper, step)
-            elif var_type == 'uniform':
-                CONFIGS[key][parm] = trial.suggest_uniform(parm, lower, upper)
+                CONFIGS[key][parm] = trial.suggest_float(parm, lower, upper, step=step)
             elif var_type == 'loguniform':
-                CONFIGS[key][parm] = trial.suggest_loguniform(parm, lower, upper)
+                CONFIGS[key][parm] = trial.suggest_float(parm, lower, upper, log=True)
             else:
                 raise NotImplementedError('Hyperparameter dtype not supported.')
-
-    print(len(CONFIGS['input']['edge_features']))
-    print(len(CONFIGS['input']['node_features'])+1)
-    print(CONFIGS['network']['message_feats'])
 
     datamodule = VyPERDataModule(
         config = CONFIG_PATH,
