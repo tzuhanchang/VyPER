@@ -54,13 +54,17 @@ device:
 # -------------------------------------- #
 tune:
   tuner_settings:
-    monitor:    accuracy/dR_mean
-    direction:  minimize
     n_trials:   100
-    epochs:     10
-    study_name: VyPER-Tuning-min-dR
+    epochs:     5
+    study_name: VyPER-Tuning
     save_dir:   ./tuning
     sqlite:     sqlite:///tuning.db
+    monitors:
+      - accuracy/dR_mean
+      - loss/validation_loss
+    directions:
+      - minimize
+      - minimize
 
   network:
     message_feats:

@@ -98,22 +98,19 @@ def objective(trial: optuna.trial.Trial) -> float:
                 save_dir=CONFIGS['tune']['tuner_settings']['save_dir'],
                 name="",
                 log_graph=True
-            ),
-            callbacks=[
-                PyTorchLightningPruningCallback(
-                    trial,
-                    monitor=CONFIGS['tune']['tuner_settings']['monitor'])
-                ]
+            )
         )
 
         trainer.fit(model, datamodule=datamodule)
+
     except Exception as e:
         print(f"Trial {trial.number} failed: {str(e)}")
         trial.set_user_attr("failed", True)
         trial.set_user_attr("error_message", str(e))
         raise optuna.TrialPruned()
 
-    return trainer.callback_metrics[CONFIGS['tune']['tuner_settings']['monitor']].item()
+    return tuple([trainer.callback_metrics[monitor].item
+                  for monitor in CONFIGS['tune']['tuner_settings']['monitors']])
 
 
 @hydra.main(version_base=None, config_path="../configs", config_name="default")
@@ -127,7 +124,7 @@ def Tune(cfg : DictConfig) -> None:
     study = optuna.create_study(
         storage        = CONFIGS['tune']['tuner_settings']['sqlite'],
         study_name     = CONFIGS['tune']['tuner_settings']['study_name'],
-        direction      = CONFIGS['tune']['tuner_settings']['direction'],
+        directions     = CONFIGS['tune']['tuner_settings']['directions'],
         load_if_exists = True,
         pruner         = optuna.pruners.MedianPruner()
     )
