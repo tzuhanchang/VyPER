@@ -1,7 +1,11 @@
+# -------------------------------------- #
+#             Common Settings            #
+# -------------------------------------- #
 datasets:
   train_set:        null
   val_set:          null
   predict_set:      null
+  tune_set:         null
   event_filter:     null
   cache_dir:        null
   force_reload:     false
@@ -44,6 +48,66 @@ device:
   num_devices:        1
   num_workers:        12
 
+
+# -------------------------------------- #
+#     Hyperparameter Tuning Settings     #
+# -------------------------------------- #
+tune:
+  n_trials:   100
+  epochs:     5
+  study_name: VyPER-Tuning
+  save_dir:   ./tuning
+  sqlite:     sqlite:///tuning.db
+  monitors:
+    - accuracy/dR_mean
+    - loss/validation_loss
+  directions:
+    - minimize
+    - minimize
+
+  hyperparameters:
+    network:
+      message_feats:
+        - int
+        - 32
+        - 128
+        - 16
+      num_attn_heads:
+        - int
+        - 4
+        - 32
+        - 4
+      num_message_layers:
+        - int
+        - 3
+        - 6
+
+    training:
+      learning_rate:
+        - loguniform
+        - 0.0001
+        - 0.001
+      weight_decay:
+        - loguniform
+        - 0.001
+        - 0.01
+      alpha:
+        - float
+        - 0.1
+        - 0.9
+      eta:
+        - float
+        - 0.1
+        - 0.9
+      dropout:
+        - loguniform
+        - 0.0001
+        - 0.01
+
+
+# -------------------------------------- #
+#        Dataset-dependent Settings      #
+# -------------------------------------- #
 input:
   nodes:
     JET: 0

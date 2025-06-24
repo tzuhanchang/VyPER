@@ -13,6 +13,7 @@ To learn more about VyPER's configuration framework, check out [Hydra](https://h
 The configuration file is divided into two sections:
 
 - [Common settings](#common-settings)
+- [Tuning settings](#tuning-settings)
 - [Dataset-dependent settings](#dataset-dependent-settings)
 
 
@@ -30,6 +31,7 @@ overwrites the default [training.learning_rate](#traininglearning_rate) to `0.00
     * [datasets.train_set](#datasetstrain_set)
     * [datasets.val_set](#datasetsval_set)
     * [datasets.predict_set](#datasetspredict_set)
+    * [datasets.tune_set](#datasetstune_set)
     * [datasets.event_filter](#datasetsevent_filter)
     * [datasets.cache_dir](#datasetscache_dir)
     * [datasets.force_reload](#datasetsforce_reload)
@@ -101,6 +103,13 @@ Required for network training.
 The path to the prediction HDF5 dataset.
 
 Required for prediction.
+
+
+### datasets.tune_set
+
+The path to the hyperparameter tuning HDF5 dataset.
+
+Required for hyperparameter tuning.
 
 
 ### datasets.event_filter
@@ -295,6 +304,93 @@ Number of subprocesses to use for data loading.
 
 Set to `0` means that the data will be loaded in the main process.
 A good starting point is to set it to the number of CPU cores on the machine. However, the larger the `num_workers`, the more CPU memory consumed.
+
+
+
+Tuning settings
+------------------
+
+Similar to the [common settings](#common-settings), tuning settings can be overwritten in the command line:
+```
+python -m VyPER.train tune.n_trials=50
+```
+it overwrites the default [tune.n_trials](#tunen_trials) to 50.
+
+The hyperparameter tuning is performed using the events in the [`datasets.tune_set`](#datasetstune_set).
+
+
+- [tune](#tune)
+
+    * [tune.n_trials](#tunen_trials)
+    * [tune.epochs](#tuneepochs)
+    * [tune.study_name](#tunestudy_name)
+    * [tune.save_dir](#tunesave_dir)
+    * [tune.sqlite](#tunesqlite)
+    * [tune.monitors](#tunemonitors)
+    * [tune.directions](#tunedirections)
+    * [tune.hyperparameters](#tunehyperparameters)
+
+
+## tune
+
+Configurations for network fine-tuning with [Optuna](https://optuna.org).
+
+### tune.n_trials
+
+The number of trials for the tuning study. The tuning study continues to create trials until the number of trials reaches  `tune.n_trials`.
+
+Set `tune.n_trials=null` with no limit in terms of the number of trials.
+
+### tune.epochs
+
+The number of epochs performed in each trial.
+
+### tune.study_name
+
+The name of the tuning study.
+
+### tune.save_dir
+
+Location of where the tuning trial states are saved.
+
+### tune.sqlite
+
+The location of the `SQLite` database of where the tuning results are saved.
+
+### tune.monitors
+
+A list of `lightning.Trainer.callback_metrics` that are used to monitor the tuning study.
+
+Available callback metrics:
+ - `validation_loss`: The overall network validation loss.
+ - `validation_edge_loss`: The edge validation loss.
+ - `validation_diffusion_loss`: The diffusion validation loss.
+ - `validation_hyperedge_loss`: The hyperedge validation loss (available only if the hyperedge is enabled).
+ - `accuracy/edge_channel_*`: The validation edge accuracy of the channel `*`.
+ - `accuracy/hyperedge_channel_*`: The validation hyperedge accuracy of the channel `*`.
+ - `accuracy/dR_mean`: The validation $\Delta R$ between truth and reconstructed neutrinos.
+
+### tune.directions
+
+Directrions of [tune.monitors](#tunemonitors), which the study is trying to optimise. It can be either `maximize` or `minimize`.
+
+### tune.hyperparameters
+
+A list of hyperparameters to be optimised by the tuning study.
+
+Example:
+```yaml
+tune:
+  hyperparameters:
+    network:
+      message_feats:
+        - int  # Type
+        - 32   # Lower bound
+        - 128  # Upper bound
+        - 16   # Step (optional)
+    ...
+```
+In the above the example, hyperparameter [`network.message_feats`](#networkmessage_feats) will be tuned. The optimised value is an integer and to be found between 32 and 128 with an interval of 16. Almost all [network](#network) and [training](#training) settings can be tuned.
 
 
 
