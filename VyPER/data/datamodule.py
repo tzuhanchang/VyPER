@@ -64,7 +64,7 @@ class VyPERDataModule(LightningDataModule):
                                               " `val_set` is not provided.")
 
                 print("Creating validation set using "
-                    +f"{round(1-self.percent_train_samples*100,2)}% of the file.")
+                    +f"{round((1-self.percent_train_samples)*100,2)}% of the file.")
 
                 data = VyPERDataset(root=self.train_set, config=self.config, training=True,
                                     cache_dir=self.cache_dir, force_reload=self.force_reload)
