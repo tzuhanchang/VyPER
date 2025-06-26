@@ -77,6 +77,7 @@ def objective(trial: optuna.trial.Trial) -> float:
             optimizer = CONFIGS['training']['optimizer'],
             lr = CONFIGS['training']['learning_rate'],
             weight_decay = CONFIGS['training']['weight_decay'],
+            momentum = CONFIGS['training']['momentum'],
             alpha = CONFIGS['training']['alpha'],
             eta = CONFIGS['training']['eta'],
             reduction = CONFIGS['training']['loss_reduction']
