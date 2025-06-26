@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Fixed
+ - Fix negative train/validation split fraction printout ([#42](https://github.com/tzuhanchang/VyPER/pull/42))
 
 
 ## [0.2.0-alpha] - 2025-06-18
