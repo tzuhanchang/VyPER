@@ -69,6 +69,7 @@ def Train(cfg : DictConfig) -> None:
         optimizer = cfg['training']['optimizer'],
         lr = cfg['training']['learning_rate'],
         weight_decay = cfg['training']['weight_decay'],
+        momentum = cfg['training']['momentum'],
         alpha = cfg['training']['alpha'],
         eta = cfg['training']['eta'],
         reduction = cfg['training']['loss_reduction']

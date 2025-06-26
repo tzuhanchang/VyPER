@@ -51,6 +51,7 @@ overwrites the default [training.learning_rate](#traininglearning_rate) to `0.00
 
     * [training.learning_rate](#traininglearning_rate)
     * [training.weight_decay](#trainingweight_decay)
+    * [training.momentum](#trainingmomentum)
     * [training.optimizer](#trainingoptimizer)
     * [training.loss_reduction](#trainingloss_reduction)
     * [training.alpha](#trainingalpha)
@@ -195,6 +196,11 @@ Learning rate.
 Weight decay coefficient. This parameter is valid only if `AdamW` is chosen as the optimizer (see [training.optimizer](#trainingoptimizer)).
 
 
+### training.momentum
+
+Momentum factor. This parameter is valid only if `SGD` is chosen as the optimizer (see [training.optimizer](#trainingoptimizer)).
+
+
 ### training.optimizer
 
 Gradient descent algorithm.
@@ -202,6 +208,7 @@ Gradient descent algorithm.
 Supported optimizers:
  - `Adam`: [Adam: A Method for Stochastic Optimization](https://arxiv.org/abs/1412.6980).
  - `AdamW`: [Decoupled Weight Decay Regularization](https://arxiv.org/abs/1711.05101).
+ - `SGD`: [On the importance of initialization and momentum in deep learning](http://www.cs.toronto.edu/%7Ehinton/absps/momentum.pdf).
 
 
 ### training.loss_reduction

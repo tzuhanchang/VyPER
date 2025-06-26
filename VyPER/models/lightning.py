@@ -33,6 +33,7 @@ class VyPER(LightningModule):
         optimizer: str = "Adam",
         lr: float = 1e-3,
         weight_decay: float = 0.01,
+        momentum: float = 0.0,
         alpha: float = 0.5,
         eta: float = 0.5,
         reduction: float = 'mean'
@@ -103,6 +104,8 @@ class VyPER(LightningModule):
             optimizer = optim.Adam(self.parameters(), lr=self.hparams.lr)
         elif str(self.hparams.optimizer).lower() == 'adamw':
             optimizer = optim.AdamW(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.weight_decay)
+        elif str(self.hparams.optimizer).lower() == 'sgd':
+            optimizer = optim.SGD(self.parameters(), lr=self.hparams.lr, momentum=self.hparams.momentum)
         # --------- custom optimizers ---------
         # elif
         # -------------------------------------
