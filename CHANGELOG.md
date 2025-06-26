@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+ - Add optimizer `torch.optim.SGD` ([#41](https://github.com/tzuhanchang/VyPER/pull/41))
  - Add hyperparameter tuning feature ([#39](https://github.com/tzuhanchang/VyPER/pull/39))
 
 ### Changed
