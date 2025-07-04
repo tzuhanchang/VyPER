@@ -55,6 +55,7 @@ class VyPERDataModule(LightningDataModule):
         self.neutrino_4vector_func = None
         self.neutrino_4vector_loc = None
         self._use_hyperedge = False
+        self._use_diffusion = False
 
     def setup(self, stage: str) -> None:
         if self.train_set is not None:
@@ -69,6 +70,7 @@ class VyPERDataModule(LightningDataModule):
                 data = VyPERDataset(root=self.train_set, config=self.config, training=True,
                                     cache_dir=self.cache_dir, force_reload=self.force_reload)
 
+                self._use_diffusion = data._use_diffusion
                 self._use_hyperedge = data._use_hyperedge
                 self.node_in_channels = data.node_in_channels
                 self.edge_in_channels = data.edge_in_channels
@@ -89,6 +91,7 @@ class VyPERDataModule(LightningDataModule):
                 self.val_data = VyPERDataset(root=self.val_set, config=self.config, training=True,
                                              cache_dir=self.cache_dir, force_reload=self.force_reload)
 
+                self._use_diffusion = self.train_data._use_diffusion
                 self._use_hyperedge = self.train_data._use_hyperedge
                 if self.node_in_channels is None:
                     self.node_in_channels = self.train_data.node_in_channels
@@ -114,6 +117,7 @@ class VyPERDataModule(LightningDataModule):
             self.predict_data = VyPERDataset(root=self.predict_set, config=self.config, training=False,
                                              cache_dir=self.cache_dir, force_reload=self.force_reload)
 
+            self._use_diffusion = self.predict_data._use_diffusion
             self._use_hyperedge = self.predict_data._use_hyperedge
             if self.node_in_channels is None:
                 self.node_in_channels = self.predict_data.node_in_channels

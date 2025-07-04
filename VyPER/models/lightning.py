@@ -21,11 +21,12 @@ class VyPER(LightningModule):
         global_in_channels: int,
         edge_out_channels: int,
         hyperedge_out_channels: int,
-        nu_out_channels: int,
+        nu_out_channels: Optional[int] = None,
         message_feats: int = 32,
         dropout: float = 0.01,
         num_message_layers: int = 3,
         use_hyperedge: bool = True,
+        use_diffusion: bool = True,
         hyperedge_feats: int = 32,
         hyperedge_order: int = 3,
         num_sampling_steps: int = 50,
@@ -43,6 +44,9 @@ class VyPER(LightningModule):
 
         self.save_hyperparameters()
 
+        if use_diffusion:
+            assert nu_out_channels is not None
+
         self.MessagePassing = MPNNs(
             node_in_channels=self.hparams.node_in_channels,
             edge_in_channels=self.hparams.edge_in_channels,
@@ -53,17 +57,19 @@ class VyPER(LightningModule):
             num_layers=self.hparams.num_message_layers,
             message_feats=self.hparams.message_feats,
             nu_ctx_channels=self.hparams.message_feats,
-            dropout=self.hparams.dropout
+            dropout=self.hparams.dropout,
+            use_neutrino=self.hparams.use_diffusion
         )
 
-        self.NeutrinoDiffusion = NeutrinoDiffusion(
-            d_ctx=self.hparams.message_feats,
-            d_embed=self.hparams.message_feats,
-            d_target=self.hparams.nu_out_channels,
-            num_heads=self.hparams.num_attn_heads,
-            num_message_steps=self.hparams.num_message_layers,
-            num_sampling_steps=self.hparams.num_sampling_steps
-        )
+        if self.hparams.use_diffusion:
+            self.NeutrinoDiffusion = NeutrinoDiffusion(
+                d_ctx=self.hparams.message_feats,
+                d_embed=self.hparams.message_feats,
+                d_target=self.hparams.nu_out_channels,
+                num_heads=self.hparams.num_attn_heads,
+                num_message_steps=self.hparams.num_message_layers,
+                num_sampling_steps=self.hparams.num_sampling_steps
+            )
 
         if self.hparams.use_hyperedge:
             self.Hyperedge = HyperedgeBlock(
@@ -83,21 +89,31 @@ class VyPER(LightningModule):
                 hyperedge_index=None, hyperedge_index_batch=None,
                 neutrino_t=None, train_mode=True, sampling=True):
         # Message-passing
-        x_out, edge_attr_out, u_out, nu_ctx = self.MessagePassing(
+        message_out = self.MessagePassing(
             x, edge_index, edge_attr, u, batch, x_fw_mask, edge_fw_mask
         )
-        # Neutrino diffusion
-        num_neutrinos = scatter(x_fw_mask, index=batch, dim=0, dim_size=u.size(0), reduce='sum')
-        nu_batch = torch.unique(batch).repeat_interleave(num_neutrinos)
-        if train_mode:
-            nu_out = self.NeutrinoDiffusion(nu_ctx, batch, nu_batch, neutrino_t, sampling=sampling)
+        if self.hparams.use_diffusion:
+            x_out, edge_attr_out, u_out, nu_ctx = message_out
+            # Neutrino diffusion
+            num_neutrinos = scatter(x_fw_mask, index=batch, dim=0, dim_size=u.size(0), reduce='sum')
+            nu_batch = torch.unique(batch).repeat_interleave(num_neutrinos)
+            if train_mode:
+                nu_out = self.NeutrinoDiffusion(nu_ctx, batch, nu_batch, neutrino_t, sampling=sampling)
+            else:
+                nu_out = self.NeutrinoDiffusion(nu_ctx, batch, nu_batch)
         else:
-            nu_out = self.NeutrinoDiffusion(nu_ctx, batch, nu_batch)
+            x_out, edge_attr_out, u_out = message_out
         # Hyperedge step
         if hyperedge_index is not None and hyperedge_index_batch is not None:
             hyperedge_out, hyperedge_batch = self.Hyperedge(x_out, u_out, batch, hyperedge_index, hyperedge_index_batch, self.hparams.hyperedge_order)
-            return edge_attr_out, hyperedge_out, hyperedge_batch, nu_out, nu_batch
-        return edge_attr_out, nu_out, nu_batch
+            if self.hparams.use_diffusion:
+                return edge_attr_out, hyperedge_out, hyperedge_batch, nu_out, nu_batch
+            else:
+                return edge_attr_out, hyperedge_out, hyperedge_batch
+        if self.hparams.use_diffusion:
+            return edge_attr_out, nu_out, nu_batch
+        else:
+            return edge_attr_out
 
     def configure_optimizers(self):
         if str(self.hparams.optimizer).lower() == 'adam':
@@ -122,25 +138,35 @@ class VyPER(LightningModule):
                 neutrino_t=train_batch.neutrino_t, train_mode=True, sampling=False
         )
         if self.hparams.use_hyperedge:
-            edge_attr_out, hyperedge_out, hyperedge_batch, nu_loss, nu_batch = out
+            if self.hparams.use_diffusion:
+                edge_attr_out, hyperedge_out, hyperedge_batch, nu_loss, nu_batch = out
+            else:
+                edge_attr_out, hyperedge_out, hyperedge_batch = out
             hyperedge_loss = HyperedgeLoss(hyperedge_out, train_batch.hyperedge_attr_t, hyperedge_batch,
                                            train_batch.topo_max_num_hyperedges)
             self.log('loss/train_hyperedge_loss', hyperedge_loss.mean(), batch_size=len(train_batch),
                  on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
         else:
-            edge_attr_out, nu_loss, nu_batch = out
+            if self.hparams.use_diffusion:
+                edge_attr_out, nu_loss, nu_batch = out
+            else:
+                edge_attr_out = out
             hyperedge_loss = None
+
+        if self.hparams.use_diffusion:
+            nu_loss = DiffusionLoss(nu_loss, nu_batch, reduction='sum')
+            self.log('loss/train_diffusion_loss', nu_loss.mean(), batch_size=len(train_batch),
+                 on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
+        else:
+            nu_loss = None
 
         edge_loss = EdgeLoss(edge_attr_out, train_batch.edge_attr_t, train_batch.edge_attr_batch,
                              train_batch.topo_max_num_edges)
-        nu_loss = DiffusionLoss(nu_loss, nu_batch, reduction='sum')
         loss = CombinedLoss(edge_loss, nu_loss, hyperedge_loss, reduction=self.hparams.reduction,
                             alpha=self.hparams.alpha, eta=self.hparams.eta)
 
         # Logging
         self.log('loss/train_edge_loss', edge_loss.mean(), batch_size=len(train_batch),
-                 on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
-        self.log('loss/train_diffusion_loss', nu_loss.mean(), batch_size=len(train_batch),
                  on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
         self.log('loss/train_loss', loss, batch_size=len(train_batch), on_step=True, on_epoch=True,
                  prog_bar=True, logger=True, sync_dist=True)
@@ -157,10 +183,17 @@ class VyPER(LightningModule):
                 neutrino_t=val_batch.neutrino_t, train_mode=True, sampling=True
             )
             if self.hparams.use_hyperedge:
-                edge_attr_out, hyperedge_out, hyperedge_batch, nu_out, nu_batch = out
+                if self.hparams.use_diffusion:
+                    edge_attr_out, hyperedge_out, hyperedge_batch, nu_out, nu_batch = out
+                    nu_loss, nu_out = nu_out
+                else:
+                    edge_attr_out, hyperedge_out, hyperedge_batch = out
             else:
-                edge_attr_out, nu_out, nu_batch = out
-            nu_loss, nu_out = nu_out
+                if self.hparams.use_diffusion:
+                    edge_attr_out, nu_out, nu_batch = out
+                    nu_loss, nu_out = nu_out
+                else:
+                    edge_attr_out = out
         else:
             out = self.forward(
                 val_batch.x, val_batch.edge_index, val_batch.edge_attr, val_batch.u,
@@ -170,9 +203,15 @@ class VyPER(LightningModule):
                 neutrino_t=val_batch.neutrino_t, train_mode=True, sampling=False
             )
             if self.hparams.use_hyperedge:
-                edge_attr_out, hyperedge_out, hyperedge_batch, nu_loss, nu_batch = out
+                if self.hparams.use_diffusion:
+                    edge_attr_out, hyperedge_out, hyperedge_batch, nu_loss, nu_batch = out
+                else:
+                    edge_attr_out, hyperedge_out, hyperedge_batch = out
             else:
-                edge_attr_out, nu_loss, nu_batch = out
+                if self.hparams.use_diffusion:
+                    edge_attr_out, nu_loss, nu_batch = out
+                else:
+                    edge_attr_out = out
 
         if self.hparams.use_hyperedge:
             hyperedge_loss = HyperedgeLoss(hyperedge_out, val_batch.hyperedge_attr_t, hyperedge_batch,
@@ -187,9 +226,15 @@ class VyPER(LightningModule):
         else:
             hyperedge_loss = None
 
+        if self.hparams.use_diffusion:
+            nu_loss = DiffusionLoss(nu_loss, nu_batch, reduction='sum')
+            self.log('loss/validation_diffusion_loss', nu_loss.mean(), batch_size=len(val_batch),
+                 on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
+        else:
+            nu_loss = None
+
         edge_loss = EdgeLoss(edge_attr_out, val_batch.edge_attr_t, val_batch.edge_attr_batch,
                              val_batch.topo_max_num_edges)
-        nu_loss = DiffusionLoss(nu_loss, nu_batch, reduction='sum')
         loss = CombinedLoss(edge_loss, nu_loss, hyperedge_loss, reduction=self.hparams.reduction,
                             alpha=self.hparams.alpha, eta=self.hparams.eta)
 
@@ -199,15 +244,13 @@ class VyPER(LightningModule):
         # Logging
         self.log('loss/validation_edge_loss', edge_loss.mean(), batch_size=len(val_batch),
                  on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
-        self.log('loss/validation_diffusion_loss', nu_loss.mean(), batch_size=len(val_batch),
-                 on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
         self.log('loss/validation_loss', loss, batch_size=len(val_batch), on_step=True, on_epoch=True,
                  prog_bar=True, logger=True, sync_dist=True)
         for i in range(self.hparams.edge_out_channels):
             self.log(f'accuracy/edge_channel_{i}', edge_accuracy[i], batch_size=len(val_batch), on_step=False, on_epoch=True,
                      prog_bar=False, logger=True, sync_dist=True)
 
-        if batch_idx == final_val_batch_idx:
+        if batch_idx == final_val_batch_idx and self.hparams.use_diffusion:
             p = get_neutrino_p4(nu_out,
                                 self.trainer.datamodule.neutrino_momentum_func,
                                 self.trainer.datamodule.neutrino_4vector_func,
@@ -244,22 +287,35 @@ class VyPER(LightningModule):
             neutrino_t=None, train_mode=False, sampling=True
         )
         if self.hparams.use_hyperedge:
-            edge_attr_out, hyperedge_out, hyperedge_batch, nu_out, nu_batch = out
+            if self.hparams.use_diffusion:
+                edge_attr_out, hyperedge_out, hyperedge_batch, nu_out, nu_batch = out
+            else:
+                edge_attr_out, hyperedge_out, hyperedge_batch = out
             hyperedge_out = torch.nn.functional.softmax(hyperedge_out, dim=1)
         else:
-            edge_attr_out, nu_out, nu_batch = out
+            if self.hparams.use_diffusion:
+                edge_attr_out, nu_out, nu_batch = out
+            else:
+                edge_attr_out = out
 
         edge_attr_out = torch.nn.functional.softmax(edge_attr_out, dim=1)
 
-        for column in range(nu_out.size(1)):
-            nu_out[:,column] = self.trainer.datamodule.nu_reverse_transform_methods[column](nu_out[:,column])
+        if self.hparams.use_diffusion:
+            for column in range(nu_out.size(1)):
+                nu_out[:,column] = self.trainer.datamodule.nu_reverse_transform_methods[column](nu_out[:,column])
+            nu_out = unbatch(nu_out, nu_batch, dim=0)
 
         edge_out = unbatch(edge_attr_out, pred_batch.edge_attr_batch, dim=0)
         edge_index = unbatch_edge_index(pred_batch.edge_index, pred_batch.batch,
                                         batch_size=self.trainer.datamodule.batch_size)
-        nu_out = unbatch(nu_out, nu_batch, dim=0)
         if self.hparams.use_hyperedge:
             hyperedge_out = unbatch(hyperedge_out, hyperedge_batch.type(torch.int64))
             hyperedge_index = unbatch_hyperedge_index(pred_batch.hyperedge_index, hyperedge_batch.type(torch.int64))
-            return edge_out, edge_index, hyperedge_out, hyperedge_index, nu_out
-        return edge_out, edge_index, nu_out
+            if self.hparams.use_diffusion:
+                return edge_out, edge_index, hyperedge_out, hyperedge_index, nu_out
+            else:
+                return edge_out, edge_index, hyperedge_out, hyperedge_index
+        if self.hparams.use_diffusion:
+            return edge_out, edge_index, nu_out
+        else:
+            return edge_out, edge_index

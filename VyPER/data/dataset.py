@@ -52,32 +52,8 @@ class VyPERDataset(Dataset):
         del node_4vector_loc
         assert self.node_4vector_loc.size(0) == 4
 
-        # Locate neutrino 4 vector inputs
-        neutrino_4vector_func = []
-        neutrino_4vector_loc = []
-        for input in config['target']['neutrinos']['4vector_definition']['ordered_inputs']:
-            loc = 0
-            func_like = []
-            for feat in config['target']['neutrinos']['features']:
-                if feat in input and feat != input:
-                    func_like.append(loc)
-                if feat == input:
-                    neutrino_4vector_loc.append([loc])
-                    neutrino_4vector_func.append(eval(f"lambda {input}: {input}"))
-                loc += 1
-            if len(func_like) > 0:
-                neutrino_4vector_loc.append(func_like)
-                neutrino_4vector_func.append(
-                    eval(f"lambda {','.join(map(str,np.array(config['target']['neutrinos']['features'])[func_like]))}: {input}"))
-        self.neutrino_4vector_loc = neutrino_4vector_loc
-        self.neutrino_4vector_func = neutrino_4vector_func
-        del neutrino_4vector_loc
-        del neutrino_4vector_func
-        assert len(self.neutrino_4vector_loc) == len(self.neutrino_4vector_func)
-
         # Define the function that handles 4 momentum calculation
         self.momentum_func = eval(config['input']['node_4vector_definition']['functional'])
-        self.neutrino_momentum_func = eval(config['target']['neutrinos']['4vector_definition']['functional'])
 
         # Read functions that define edge features
         self.edge_feat_func = [
@@ -87,6 +63,40 @@ class VyPERDataset(Dataset):
         self.topo_max_num_edges = int(config['target']['topology']['edge'])
         self.topo_max_num_hyperedges = int(config['target']['topology']['hyperedge'])
         self.topo_num_neutrinos = int(config['target']['topology']['neutrinos'])
+
+        # Locate neutrino 4 vector inputs
+        self._use_diffusion = True if 'neutrinos' in config['target'].keys() else False
+        if self._use_diffusion:
+            assert self.topo_num_neutrinos > 0
+            self.neutrino_association = torch.tensor(config['target']['neutrinos']['associated_nodes'])
+            neutrino_4vector_func = []
+            neutrino_4vector_loc = []
+            for input in config['target']['neutrinos']['4vector_definition']['ordered_inputs']:
+                loc = 0
+                func_like = []
+                for feat in config['target']['neutrinos']['features']:
+                    if feat in input and feat != input:
+                        func_like.append(loc)
+                    if feat == input:
+                        neutrino_4vector_loc.append([loc])
+                        neutrino_4vector_func.append(eval(f"lambda {input}: {input}"))
+                    loc += 1
+                if len(func_like) > 0:
+                    neutrino_4vector_loc.append(func_like)
+                    neutrino_4vector_func.append(
+                        eval(f"lambda {','.join(map(str,np.array(config['target']['neutrinos']['features'])[func_like]))}: {input}"))
+            self.neutrino_4vector_loc = neutrino_4vector_loc
+            self.neutrino_4vector_func = neutrino_4vector_func
+            del neutrino_4vector_loc
+            del neutrino_4vector_func
+            assert len(self.neutrino_4vector_loc) == len(self.neutrino_4vector_func)
+            self.neutrino_momentum_func = eval(config['target']['neutrinos']['4vector_definition']['functional'])
+        else:
+            assert self.topo_num_neutrinos == 0
+            self.neutrino_association = None
+            self.neutrino_4vector_loc = None
+            self.neutrino_4vector_func = None
+            self.neutrino_momentum_func = None
 
         # Read target edge labels
         edge_cantor = {}
@@ -129,14 +139,11 @@ class VyPERDataset(Dataset):
         else:
             assert self.topo_max_num_hyperedges == 0
 
-        # Read target neutrino labels
-        self.neutrino_association = torch.tensor(config['target']['neutrinos']['associated_nodes'])
-
         # Get input channel size
         self.node_in_channels = len(config['input']['node_features']) + 1
         self.edge_in_channels = len(config['input']['edge_features'])
         self.glob_in_channels = len(config['input']['global_features'])
-        self.nu_out_channels  = len(config['target']['neutrinos']['features'])
+        self.nu_out_channels  = len(config['target']['neutrinos']['features']) if self._use_diffusion else None
 
         # Open the HDF5 file for this dataset instance
         self.file = h5py.File(self.root, 'r')
@@ -161,16 +168,24 @@ class VyPERDataset(Dataset):
             eval(f"lambda x: {func}")for func in config['input']['edge_transforms']]
         self.glob_transform_methods = [
             eval(f"lambda x: {func}")for func in config['input']['global_transforms']]
-        self.nu_transform_methods = [
-            eval(f"lambda x: {func}")for func in config['target']['neutrinos']['transforms']]
-        self.nu_reverse_transform_methods = [
-            eval(f"lambda x: {func}")for func in config['target']['neutrinos']['reverse_transforms']]
+        if self._use_diffusion:
+            self.nu_transform_methods = [
+                eval(f"lambda x: {func}")for func in config['target']['neutrinos']['transforms']]
+            self.nu_reverse_transform_methods = [
+                eval(f"lambda x: {func}")for func in config['target']['neutrinos']['reverse_transforms']]
+        else:
+            self.nu_transform_methods = None
+            self.nu_reverse_transform_methods = None
         if self._train_mode:
-            transform = TransformFeatures(['x', 'edge_attr', 'u', 'neutrino_t'],
+            transform = TransformFeatures(['x', 'edge_attr', 'u', 'neutrino_t'] if self._use_diffusion \
+                                     else ['x', 'edge_attr', 'u'],
                                           [self.node_transform_methods,
                                            self.edge_transform_methods,
                                            self.glob_transform_methods,
-                                           self.nu_transform_methods])
+                                           self.nu_transform_methods] if self._use_diffusion \
+                                     else [self.node_transform_methods,
+                                           self.edge_transform_methods,
+                                           self.glob_transform_methods])
         else:
             transform = TransformFeatures(['x', 'edge_attr', 'u'],
                                           [self.node_transform_methods,
@@ -375,7 +390,10 @@ class VyPERDataset(Dataset):
                 hyperedge_attr_t = self.build_hyperedge_target(hyperedge_cantor, hyperedge_index)
             else:
                 hyperedge_attr_t = None
-            neutrino_t = self.build_neutrino_target(self.file['LABELS'],index)
+            if self._use_diffusion:
+                neutrino_t = self.build_neutrino_target(self.file['LABELS'],index)
+            else:
+                neutrino_t = None
             edge_attr_t = self.build_edge_target(edge_cantor, edge_index)
             data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, u=u,
                         edge_attr_t=edge_attr_t, neutrino_t=neutrino_t,

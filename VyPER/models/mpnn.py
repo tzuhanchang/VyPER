@@ -35,11 +35,13 @@ class MPNNs(nn.Module):
             num_layers: int = 1,
             nu_ctx_channels: int = 1,
             message_feats: int = 32,
-            dropout: float = 0.01
+            dropout: float = 0.01,
+            use_neutrino: bool = True
         ) -> None:
         super().__init__()
 
         self.num_layers = num_layers
+        self._use_neutrino = use_neutrino
 
         for i in range(num_layers):
             if i == 0 and num_layers == 1:
@@ -155,39 +157,40 @@ class MPNNs(nn.Module):
                     )
                 )
 
-            if i == 0:
-                setattr(self, 'NeutrinoModel' + str(i),
-                    NeutrinoModel(
-                        d_node=node_in_channels,
-                        d_edge=edge_in_channels,
-                        d_glob=global_in_channels,
-                        d_out=nu_ctx_channels,
-                        d_embed=message_feats,
-                        dropout=dropout
+            if self._use_neutrino:
+                if i == 0:
+                    setattr(self, 'NeutrinoModel' + str(i),
+                        NeutrinoModel(
+                            d_node=node_in_channels,
+                            d_edge=edge_in_channels,
+                            d_glob=global_in_channels,
+                            d_out=nu_ctx_channels,
+                            d_embed=message_feats,
+                            dropout=dropout
+                        )
                     )
-                )
-            elif i == num_layers-1:
-                setattr(self, 'NeutrinoModel' + str(i),
-                    NeutrinoModel(
-                        d_node=node_out_channels,
-                        d_edge=message_feats,
-                        d_glob=global_out_channels,
-                        d_out=nu_ctx_channels,
-                        d_embed=message_feats,
-                        dropout=dropout
+                elif i == num_layers-1:
+                    setattr(self, 'NeutrinoModel' + str(i),
+                        NeutrinoModel(
+                            d_node=node_out_channels,
+                            d_edge=message_feats,
+                            d_glob=global_out_channels,
+                            d_out=nu_ctx_channels,
+                            d_embed=message_feats,
+                            dropout=dropout
+                        )
                     )
-                )
-            else:
-                setattr(self, 'NeutrinoModel' + str(i),
-                    NeutrinoModel(
-                        d_node=message_feats,
-                        d_edge=message_feats,
-                        d_glob=message_feats,
-                        d_out=nu_ctx_channels,
-                        d_embed=message_feats,
-                        dropout=dropout
+                else:
+                    setattr(self, 'NeutrinoModel' + str(i),
+                        NeutrinoModel(
+                            d_node=message_feats,
+                            d_edge=message_feats,
+                            d_glob=message_feats,
+                            d_out=nu_ctx_channels,
+                            d_embed=message_feats,
+                            dropout=dropout
+                        )
                     )
-                )
         
         self.final_edge_layer = Mlp(
             d_in=message_feats,
@@ -206,9 +209,10 @@ class MPNNs(nn.Module):
             for layer in getattr(self, 'MessagePassing' + str(i)).children():
                 if hasattr(layer, 'reset_parameters'):
                     layer.reset_parameters()
-            for layer in getattr(self, 'NeutrinoModel' + str(i)).children():
-                if hasattr(layer, 'reset_parameters'):
-                    layer.reset_parameters()
+            if self._use_neutrino:
+                for layer in getattr(self, 'NeutrinoModel' + str(i)).children():
+                    if hasattr(layer, 'reset_parameters'):
+                        layer.reset_parameters()
             self.final_edge_layer.reset_parameters()
 
 
@@ -217,22 +221,29 @@ class MPNNs(nn.Module):
         # Message Passing Step
         for i in range(self.num_layers):
             if i == 0:
-                ctx, x_prime = getattr(self, 'NeutrinoModel' + str(i))(
-                    x, edge_index, edge_attr, u, batch, lep_node, lep_forward_edge
-                )
+                if self._use_neutrino:
+                    ctx, x_prime = getattr(self, 'NeutrinoModel' + str(i))(
+                        x, edge_index, edge_attr, u, batch, lep_node, lep_forward_edge
+                    )
+                else:
+                    x_prime = x
                 x_prime, edge_attr_prime, u_prime = getattr(self, 'MessagePassing' + str(i))(
                     x_prime, edge_index, edge_attr, u, batch
                 )
             else:
-                ctx, x_prime = getattr(self, 'NeutrinoModel' + str(i))(
-                    x_prime, edge_index, edge_attr_prime, u_prime, batch, lep_node, lep_forward_edge
-                )
+                if self._use_neutrino:
+                    ctx, x_prime = getattr(self, 'NeutrinoModel' + str(i))(
+                        x_prime, edge_index, edge_attr_prime, u_prime, batch, lep_node, lep_forward_edge
+                    )
+                    nu_ctx.append(ctx)
                 x_prime, edge_attr_prime, u_prime = getattr(self, 'MessagePassing' + str(i))(
                     x_prime, edge_index, edge_attr_prime, u_prime, batch
                 )
-            nu_ctx.append(ctx)
 
         # Summarising
         edge_attr_prime = self.final_edge_layer(edge_attr_prime)
-        nu_ctx = torch.cat(nu_ctx, dim=1).float()
-        return x_prime, edge_attr_prime, u_prime, nu_ctx
+        if self._use_neutrino:
+            nu_ctx = torch.cat(nu_ctx, dim=1).float()
+            return x_prime, edge_attr_prime, u_prime, nu_ctx
+        else:
+            return x_prime, edge_attr_prime, u_prime
