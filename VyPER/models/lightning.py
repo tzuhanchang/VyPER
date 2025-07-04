@@ -85,7 +85,7 @@ class VyPER(LightningModule):
         self.metric_edge = MultilabelAccuracy(num_labels=self.hparams.edge_out_channels,
                                               average='none', ignore_index=0)
 
-    def forward(self, x, edge_index, edge_attr, u, batch, x_fw_mask, edge_fw_mask,
+    def forward(self, x, edge_index, edge_attr, u, batch, x_fw_mask=None, edge_fw_mask=None,
                 hyperedge_index=None, hyperedge_index_batch=None,
                 neutrino_t=None, train_mode=True, sampling=True):
         # Message-passing
@@ -130,9 +130,13 @@ class VyPER(LightningModule):
         return optimizer
 
     def training_step(self, train_batch, batch_idx):
+        if self.hparams.use_diffusion:
+            x_fw_mask, edge_fw_mask = (train_batch.x_fw_mask, train_batch.edge_fw_mask)
+        else:
+            x_fw_mask, edge_fw_mask = (None, None)
         out = self.forward(
                 train_batch.x, train_batch.edge_index, train_batch.edge_attr, train_batch.u,
-                train_batch.batch, train_batch.x_fw_mask, train_batch.edge_fw_mask,
+                train_batch.batch, x_fw_mask, edge_fw_mask,
                 hyperedge_index=train_batch.hyperedge_index if self.hparams.use_hyperedge else None,
                 hyperedge_index_batch=train_batch.hyperedge_index_batch if self.hparams.use_hyperedge else None,
                 neutrino_t=train_batch.neutrino_t, train_mode=True, sampling=False
@@ -173,11 +177,15 @@ class VyPER(LightningModule):
         return loss
 
     def validation_step(self, val_batch, batch_idx):
+        if self.hparams.use_diffusion:
+            x_fw_mask, edge_fw_mask = (val_batch.x_fw_mask, val_batch.edge_fw_mask)
+        else:
+            x_fw_mask, edge_fw_mask = (None, None)
         final_val_batch_idx = len(self.trainer.datamodule.val_dataloader()) - 1
         if batch_idx == final_val_batch_idx:
             out = self.forward(
                 val_batch.x, val_batch.edge_index, val_batch.edge_attr, val_batch.u,
-                val_batch.batch, val_batch.x_fw_mask, val_batch.edge_fw_mask,
+                val_batch.batch, x_fw_mask, edge_fw_mask,
                 hyperedge_index=val_batch.hyperedge_index if self.hparams.use_hyperedge else None,
                 hyperedge_index_batch=val_batch.hyperedge_index_batch if self.hparams.use_hyperedge else None,
                 neutrino_t=val_batch.neutrino_t, train_mode=True, sampling=True
@@ -197,7 +205,7 @@ class VyPER(LightningModule):
         else:
             out = self.forward(
                 val_batch.x, val_batch.edge_index, val_batch.edge_attr, val_batch.u,
-                val_batch.batch, val_batch.x_fw_mask, val_batch.edge_fw_mask,
+                val_batch.batch, x_fw_mask, edge_fw_mask,
                 hyperedge_index=val_batch.hyperedge_index if self.hparams.use_hyperedge else None,
                 hyperedge_index_batch=val_batch.hyperedge_index_batch if self.hparams.use_hyperedge else None,
                 neutrino_t=val_batch.neutrino_t, train_mode=True, sampling=False
@@ -279,9 +287,13 @@ class VyPER(LightningModule):
                  prog_bar=False, logger=True, sync_dist=True)
 
     def predict_step(self, pred_batch, batch_idx, dataloader_idx=0):
+        if self.hparams.use_diffusion:
+            x_fw_mask, edge_fw_mask = (pred_batch.x_fw_mask, pred_batch.edge_fw_mask)
+        else:
+            x_fw_mask, edge_fw_mask = (None, None)
         out = self.forward(
             pred_batch.x, pred_batch.edge_index, pred_batch.edge_attr, pred_batch.u,
-            pred_batch.batch, pred_batch.x_fw_mask, pred_batch.edge_fw_mask,
+            pred_batch.batch, x_fw_mask, edge_fw_mask,
             hyperedge_index=pred_batch.hyperedge_index if self.hparams.use_hyperedge else None,
             hyperedge_index_batch=pred_batch.hyperedge_index_batch if self.hparams.use_hyperedge else None,
             neutrino_t=None, train_mode=False, sampling=True

@@ -20,7 +20,7 @@ class PredictionWriter(BasePredictionWriter):
     :type: :obj:`None`
     """
     def __init__(self, output_dir, edge_out_channels: int,
-                 num_neutrinos: Optional[int]=None,
+                 num_neutrinos:int=0,
                  hyperedge_out_channels: Optional[int]=None,
                  hyperedge_order: Optional[int]=None,
                  edge_reduction: Optional[str]=None) -> None:
@@ -50,7 +50,7 @@ class PredictionWriter(BasePredictionWriter):
             "EdgeIndex", (self.num_pred_events,2),dtype=index_dtype)
         self.edge_out = data_group.create_dataset(
             "EdgeSoftP", (self.num_pred_events,self.edge_out_channels), dtype=value_dtype)
-        if self.num_neutrinos is not None:
+        if self.num_neutrinos > 0:
             self.neutrino_out = data_group.create_dataset(
                 "Neutrino", (self.num_pred_events,self.num_neutrinos), dtype=value_dtype)
         if self.hyperedge_out_channels is not None:
@@ -73,12 +73,12 @@ class PredictionWriter(BasePredictionWriter):
             self.prepare_output_file()
 
         if self.hyperedge_out_channels is not None:
-            if self.num_neutrinos is not None:
+            if self.num_neutrinos > 0:
                 edge_out, edge_index, hyperedge_out, hyperedge_index, nu_out = prediction
             else:
                 edge_out, edge_index, hyperedge_out, hyperedge_index = prediction
         else:
-            if self.num_neutrinos is not None:
+            if self.num_neutrinos > 0:
                 edge_out, edge_index, nu_out = prediction
             else:
                 edge_out, edge_index = prediction
@@ -100,7 +100,7 @@ class PredictionWriter(BasePredictionWriter):
             # Write output
             self.edge_out[idx_save] = reduced_edge.transpose(0,1).detach().cpu().numpy()
             self.edge_index[idx_save] = reduced_edge_index.detach().cpu().numpy()
-            if self.num_neutrinos is not None:
+            if self.num_neutrinos > 0:
                 self.neutrino_out[idx_save] = nu_out[i].detach().cpu().numpy()
             if self.hyperedge_out_channels is not None:
                 self.hyperedge_out[idx_save] = hyperedge_out[i].transpose(0,1).detach().cpu().numpy()

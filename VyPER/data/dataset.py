@@ -370,7 +370,7 @@ class VyPERDataset(Dataset):
         x = self.build_node_attr(self.file['INPUTS'],index)
         edge_index, edge_attr = self.build_edge_attr(x)
         u = self.build_glob_attr(self.file['INPUTS'],index)
-        x_fw_mask, edge_fw_mask = self.get_masks(x, edge_index)
+        x_fw_mask, edge_fw_mask = self.get_masks(x, edge_index) if self._use_diffusion else (None, None)
         hyperedge_index = self.build_hyperedge_index(x) if self._use_hyperedge else None
 
         if self._train_mode is False:

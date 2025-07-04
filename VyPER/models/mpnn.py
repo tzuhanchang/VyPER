@@ -2,6 +2,7 @@ import torch
 
 from torch import nn
 from torch_geometric.nn import MetaLayer
+from typing import Optional
 
 from .mlp import Mlp
 from .message import EdgeModel, NodeModel, GlobalModel, NeutrinoModel
@@ -216,7 +217,11 @@ class MPNNs(nn.Module):
             self.final_edge_layer.reset_parameters()
 
 
-    def forward(self, x, edge_index, edge_attr, u, batch, lep_node, lep_forward_edge):
+    def forward(self, x, edge_index, edge_attr, u, batch,
+                lep_node: Optional[torch.tensor]=None,
+                lep_forward_edge: Optional[torch.tensor]=None):
+        if self._use_neutrino:
+            assert lep_node is not None and lep_forward_edge is not None
         nu_ctx = []
         # Message Passing Step
         for i in range(self.num_layers):
