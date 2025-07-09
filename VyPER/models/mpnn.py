@@ -230,8 +230,10 @@ class MPNNs(nn.Module):
                     ctx, x_prime = getattr(self, 'NeutrinoModel' + str(i))(
                         x, edge_index, edge_attr, u, batch, lep_node, lep_forward_edge
                     )
+                    nu_ctx.append(ctx)
                 else:
                     x_prime = x
+
                 x_prime, edge_attr_prime, u_prime = getattr(self, 'MessagePassing' + str(i))(
                     x_prime, edge_index, edge_attr, u, batch
                 )
@@ -241,6 +243,7 @@ class MPNNs(nn.Module):
                         x_prime, edge_index, edge_attr_prime, u_prime, batch, lep_node, lep_forward_edge
                     )
                     nu_ctx.append(ctx)
+
                 x_prime, edge_attr_prime, u_prime = getattr(self, 'MessagePassing' + str(i))(
                     x_prime, edge_index, edge_attr_prime, u_prime, batch
                 )
