@@ -57,7 +57,8 @@ def Predict(cfg : DictConfig) -> None:
     model = VyPER.load_from_checkpoint(
         checkpoint_path = ckpt_file,
         hparams_file = hparams_file,
-        map_location = map_location
+        map_location = map_location,
+        num_sampling_steps = cfg['predicting']['num_sampling_steps']
     )
 
     writer = PredictionWriter(
