@@ -66,22 +66,23 @@ class PredictionWriter(BasePredictionWriter):
     @torch.no_grad()
     def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, 
                            batch, batch_idx, dataloader_idx) -> None:
+        r"""Write the prediction results to the opened HDF5 file.
+
+        Note:
+            Network output is an ordered list, has the following format:
+            [edge_out, edge_index, nu_out, hyperedge_out, hyperedge_index]
+        """
         # Prepare the output file if it is not initiated
         if self.num_pred_events is None:
             self.batch_size = trainer.datamodule.batch_size
             self.num_pred_events = len(trainer.datamodule.predict_data)
             self.prepare_output_file()
 
+        edge_out, edge_index = prediction[0], prediction[1]
+        if self.num_neutrinos > 0:
+            nu_out = prediction[2]
         if self.hyperedge_out_channels is not None:
-            if self.num_neutrinos > 0:
-                edge_out, edge_index, hyperedge_out, hyperedge_index, nu_out = prediction
-            else:
-                edge_out, edge_index, hyperedge_out, hyperedge_index = prediction
-        else:
-            if self.num_neutrinos > 0:
-                edge_out, edge_index, nu_out = prediction
-            else:
-                edge_out, edge_index = prediction
+            hyperedge_out, hyperedge_index = prediction[3], prediction[4]
 
         _num_events = len(edge_out)
         for i in tqdm(range(_num_events),

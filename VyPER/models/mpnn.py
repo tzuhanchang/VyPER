@@ -222,6 +222,7 @@ class MPNNs(nn.Module):
                 lep_forward_edge: Optional[torch.tensor]=None):
         if self._use_neutrino:
             assert lep_node is not None and lep_forward_edge is not None
+
         nu_ctx = []
         # Message Passing Step
         for i in range(self.num_layers):
@@ -250,8 +251,5 @@ class MPNNs(nn.Module):
 
         # Summarising
         edge_attr_prime = self.final_edge_layer(edge_attr_prime)
-        if self._use_neutrino:
-            nu_ctx = torch.cat(nu_ctx, dim=1).float()
-            return x_prime, edge_attr_prime, u_prime, nu_ctx
-        else:
-            return x_prime, edge_attr_prime, u_prime
+        nu_ctx = torch.cat(nu_ctx, dim=1).float() if self._use_neutrino else None
+        return [x_prime, edge_attr_prime, u_prime, nu_ctx]
