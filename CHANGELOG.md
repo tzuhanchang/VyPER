@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+ - Generalize the network for zero-neutrino topologies ([#45](https://github.com/tzuhanchang/VyPER/pull/45))
 
 ### Removed
 
