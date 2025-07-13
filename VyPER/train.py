@@ -66,7 +66,7 @@ def Train(cfg : DictConfig) -> None:
         use_diffusion = _use_diffusion,
         hyperedge_feats = cfg['network']['hyperedge_feats'] if _use_hyperedge else None,
         hyperedge_order = cfg['network']['hyperedge_order'] if _use_hyperedge else None,
-        num_sampling_steps = cfg['network']['num_sampling_steps'],
+        num_sampling_steps = cfg['training']['num_sampling_steps'],
         num_attn_heads = cfg['network']['num_attn_heads'],
         optimizer = cfg['training']['optimizer'],
         lr = cfg['training']['learning_rate'],

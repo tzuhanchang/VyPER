@@ -18,7 +18,6 @@ network:
   num_message_layers: 3
   hyperedge_feats:    128
   hyperedge_order:    3
-  num_sampling_steps: 200
 
 training:
   learning_rate:      0.0003
@@ -32,6 +31,7 @@ training:
   gradient_clip:      1.
   epochs:             500
   batch_size:         4096
+  num_sampling_steps: 50
   grad_accum_batches: 1
   patience:           10
   save_directory:     logs
@@ -41,6 +41,7 @@ predicting:
   model_directory:    logs/version_0
   model_choice:       min-loss
   batch_size:         4096
+  num_sampling_steps: 200
   edge_reduction:     mean
   save_as:            ./output.h5
 

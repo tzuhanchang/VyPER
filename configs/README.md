@@ -45,7 +45,6 @@ overwrites the default [training.learning_rate](#traininglearning_rate) to `0.00
     * [network.num_message_layers](#networknum_message_layers)
     * [network.hyperedge_feats](#networkhyperedge_feats)
     * [network.hyperedge_order](#networkhyperedge_order)
-    * [network.num_sampling_steps](#networknum_sampling_steps)
 
 - [training](#training)
 
@@ -60,6 +59,7 @@ overwrites the default [training.learning_rate](#traininglearning_rate) to `0.00
     * [training.gradient_clip](#traininggradient_clip)
     * [training.epochs](#trainingepochs)
     * [training.batch_size](#trainingbatch_size)
+    * [training.num_sampling_steps](#trainingnum_sampling_steps)
     * [training.grad_accum_batches](#traininggrad_accum_batches)
     * [training.patience](#trainingpatience)
     * [training.save_directory](#trainingsave_directory)
@@ -70,6 +70,7 @@ overwrites the default [training.learning_rate](#traininglearning_rate) to `0.00
     * [predicting.model_directory](#predictingmodel_directory)
     * [predicting.model_choice](#predictingmodel_choice)
     * [predicting.batch_size](#predictingbatch_size)
+    * [predicting.num_sampling_steps](#predictingnum_sampling_steps)
     * [predicting.edge_reduction](#predictingedge_reduction)
     * [predicting.save_as](#predictingsave_as)
 
@@ -176,11 +177,6 @@ Order of the hyperedges, $|\tilde{E}_m|$.
 e.g. top quark has three final states, therefore, `hyperedge_order=3`.
 
 
-### network.num_sampling_steps
-
-Number of diffusion ODE sampling steps.
-
-
 ## training
 
 Configurations for the network training.
@@ -259,6 +255,11 @@ Training can be terminated before reaching the maximum number of epochs due to t
 ### training.batch_size
 
 The number of training examples used in one iteration or backward pass (when [training.grad_accum_batches](#traininggrad_accum_batches) is set to `1`) through the network.
+
+
+### training.num_sampling_steps
+
+Number of diffusion ODE sampling steps used for logging during training.
 
 
 ### training.grad_accum_batches
