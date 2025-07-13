@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
  - Allow users to define `num_sampling_steps` independently for training and predicting ([#46](https://github.com/tzuhanchang/VyPER/pull/46))
+ - Generalize the network for zero-neutrino topologies ([#45](https://github.com/tzuhanchang/VyPER/pull/45))
 
 ### Removed
 

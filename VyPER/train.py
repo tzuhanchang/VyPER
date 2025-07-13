@@ -50,6 +50,7 @@ def Train(cfg : DictConfig) -> None:
     )
 
     _use_hyperedge = 'hyperedge' in cfg['target'].keys()
+    _use_diffusion = 'neutrinos' in cfg['target'].keys()
 
     model = VyPER(
         node_in_channels = len(cfg['input']['node_features'])+1,
@@ -57,11 +58,12 @@ def Train(cfg : DictConfig) -> None:
         global_in_channels = len(cfg['input']['global_features']),
         edge_out_channels = len(cfg['target']['edge'])+1,
         hyperedge_out_channels = len(cfg['target']['hyperedge'])+1 if _use_hyperedge else None,
-        nu_out_channels = len(cfg['target']['neutrinos']['features']),
+        nu_out_channels = len(cfg['target']['neutrinos']['features']) if _use_diffusion else None,
         message_feats = cfg['network']['message_feats'],
         dropout = cfg['training']['dropout'],
         num_message_layers = cfg['network']['num_message_layers'],
         use_hyperedge = _use_hyperedge,
+        use_diffusion = _use_diffusion,
         hyperedge_feats = cfg['network']['hyperedge_feats'] if _use_hyperedge else None,
         hyperedge_order = cfg['network']['hyperedge_order'] if _use_hyperedge else None,
         num_sampling_steps = cfg['training']['num_sampling_steps'],
@@ -86,17 +88,6 @@ def Train(cfg : DictConfig) -> None:
             auto_insert_metric_name=False,
             enable_version_counter=False
         ),
-        ModelCheckpoint(
-            verbose=True,
-            monitor="accuracy/dR_mean",
-            save_top_k=5,
-            mode="min",
-            save_last=False,
-            filename="epoch={epoch}-loss={loss/validation_loss:.3f}-dR={accuracy/dR_mean:.3f}",
-            auto_insert_metric_name=False,
-            enable_version_counter=False
-        ),
-        # TODO: add hyperedge accuracy checkpoint.
         EarlyStopping(
             monitor="loss/validation_loss",
             mode="min",
@@ -109,6 +100,19 @@ def Train(cfg : DictConfig) -> None:
         RichProgressBar() if _RICH_AVAILABLE else TQDMProgressBar(),
         RichModelSummary(max_depth=2) if _RICH_AVAILABLE else ModelSummary(max_depth=2)
     ]
+    if _use_diffusion:
+        callbacks += [
+            ModelCheckpoint(
+                verbose=True,
+                monitor="accuracy/dR_mean",
+                save_top_k=5,
+                mode="min",
+                save_last=False,
+                filename="epoch={epoch}-loss={loss/validation_loss:.3f}-dR={accuracy/dR_mean:.3f}",
+                auto_insert_metric_name=False,
+                enable_version_counter=False
+            )]
+    # TODO: add hyperedge accuracy checkpoint.
 
     trainer = pl.Trainer(
         accelerator = cfg['device']['accelerator'],

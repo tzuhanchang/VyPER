@@ -407,6 +407,7 @@ Dataset-dependent settings
 
 These settings depend on the dataset provided.
 They are not (easily) overwritable in the command line.
+Configuration blocks labelled [Optional] are omittable, if they are not provided, their corresponding network modules will not be activated.
 
 This section will use the sample $t\bar{t}$ dilepton final-state dataset as an example to explain each setting.
 
@@ -426,8 +427,8 @@ This section will use the sample $t\bar{t}$ dilepton final-state dataset as an e
 
     * [target.topology](#targettopology)
     * [target.edge](#targetedge)
-    * [target.neutrinos](#targetneutrinos)
-    * [target.hyperedge](#targethyperedge)
+    * [target.neutrinos [Optional]](#targetneutrinos)
+    * [target.hyperedge [Optional]](#targethyperedge)
 
 
 ## input
@@ -648,6 +649,8 @@ Each target edge is represented as a list containing two endpoint-nodes of the e
 
 ### target.neutrinos
 
+This is an optional block, if it is not provided, neutrino diffusion module will not be used.
+
 ```yaml
 target:
   ...
@@ -695,6 +698,8 @@ These methods are arranged in the same order as `features`.
 
 
 ### target.hyperedge
+
+This is an optional block, if it is not provided, hyperedge module will not be used.
 
 ```yaml
 target:
