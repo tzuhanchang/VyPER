@@ -57,6 +57,7 @@ def objective(trial: optuna.trial.Trial) -> float:
     )
 
     _use_hyperedge = 'hyperedge' in CONFIGS['target'].keys()
+    _use_diffusion = 'neutrinos' in cfg['target'].keys()
 
     try:
         model = VyPER(
@@ -65,11 +66,12 @@ def objective(trial: optuna.trial.Trial) -> float:
             global_in_channels = len(CONFIGS['input']['global_features']),
             edge_out_channels = len(CONFIGS['target']['edge'])+1,
             hyperedge_out_channels = len(CONFIGS['target']['hyperedge'])+1 if _use_hyperedge else None,
-            nu_out_channels = len(CONFIGS['target']['neutrinos']['features']),
+            nu_out_channels = len(CONFIGS['target']['neutrinos']['features']) if _use_diffusion else None,
             message_feats = CONFIGS['network']['message_feats'],
             dropout = CONFIGS['training']['dropout'],
             num_message_layers = CONFIGS['network']['num_message_layers'],
             use_hyperedge = _use_hyperedge,
+            use_diffusion = _use_diffusion,
             hyperedge_feats = CONFIGS['network']['hyperedge_feats'] if _use_hyperedge else None,
             hyperedge_order = CONFIGS['network']['hyperedge_order'] if _use_hyperedge else None,
             num_sampling_steps = CONFIGS['network']['num_sampling_steps'],
