@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Fixed
+ - Fix `sum` method in `edge_reduction` ([#48](https://github.com/tzuhanchang/VyPER/pull/48))
 
 
 ## [0.2.1-alpha] - 2025-07-04

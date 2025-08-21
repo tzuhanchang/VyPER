@@ -39,7 +39,7 @@ def edge_reduction(src: Tensor, index: Tensor, reduction='mean', num_nodes: Opti
     if reduction.lower() == 'mean':
         out = out.mean(dim=2)
     elif reduction.lower() == 'sum':
-        out = out.min(dim=2)
+        out = out.sum(dim=2)
     elif reduction.lower() == 'max':
         out = out.max(dim=2)[0]
     elif reduction.lower() == 'min':
