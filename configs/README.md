@@ -297,8 +297,8 @@ Configurations of dataset evaluation.
 
 Path to where the model of choice is saved.
 
-By default, the model directory is the version folder (e.g. "version_0") inside of the `training.save_directory`.
 Required for predicting step.
+By default, the model directory is the version folder (e.g. "version_0") inside of the `training.save_directory`.
 
 
 ### predicting.model_choice
@@ -306,7 +306,7 @@ Required for predicting step.
 Choose which saved model state to use.
 
 During the training, top five models with the smallest validation loss and the smallest neutrino $\Delta R$ are saved.
-This option give user options to load their preferred model.
+This gives user options to load their preferred model.
 
 Supported options:
  - `min-loss`: model checkpoint with the smallest validation loss.
@@ -315,12 +315,12 @@ Supported options:
 
 ### predicting.batch_size
 
-The number of examples used in one predicting iteration.
+The number of examples used in one prediction iteration.
 
 
 ### predicting.num_sampling_steps
 
-Number of diffusion ODE sampling steps used for logging during predicting.
+Number of diffusion ODE sampling steps used for logging during prediction.
 
 
 ### predicting.edge_reduction
@@ -339,7 +339,7 @@ Supported options:
 Location and file name of which the prediction results are saved.
 
 The results are saved in a HDF5 file.
-If a file is found at `predicting.save_as`, VyPER will not overwrite the file but throws an error.
+If a file is found at `predicting.save_as`, VyPER will not overwrite it but throws an error.
 
 
 ## device
