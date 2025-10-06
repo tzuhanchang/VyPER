@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+ - Add missing documentation for the predicting configuration block ([#49](https://github.com/tzuhanchang/VyPER/pull/49))
 
 ### Changed
  - Allow users to define `num_sampling_steps` independently for training and predicting ([#46](https://github.com/tzuhanchang/VyPER/pull/46))
