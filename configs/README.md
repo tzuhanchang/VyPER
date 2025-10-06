@@ -288,6 +288,60 @@ Path where the training state is loaded and continuing training.
 Set to `null` not loading any checkpoints, and start a new training.
 
 
+## predicting
+
+Configurations of dataset evaluation.
+
+
+### predicting.model_directory
+
+Path to where the model of choice is saved.
+
+By default, the model directory is the version folder (e.g. "version_0") inside of the `training.save_directory`.
+Required for predicting step.
+
+
+### predicting.model_choice
+
+Choose which saved model state to use.
+
+During the training, top five models with the smallest validation loss and the smallest neutrino $\Delta R$ are saved.
+This option give user options to load their preferred model.
+
+Supported options:
+ - `min-loss`: model checkpoint with the smallest validation loss.
+ - `min-dR`: model checkpoint with the smallest validation $\Delta R$.
+
+
+### predicting.batch_size
+
+The number of examples used in one predicting iteration.
+
+
+### predicting.num_sampling_steps
+
+Number of diffusion ODE sampling steps used for logging during predicting.
+
+
+### predicting.edge_reduction
+
+Method to reduce the two directed edges connecting two endpoints to an undirected one.
+
+Supported options:
+ - `mean`: the average of the two directed edges.
+ - `max`: the maximum of the two direccted edges.
+ - `min`: the minimum of the two directed edges.
+ - `sum`: the element-wise sum of the two directed edges.
+
+
+### predicting.save_as
+
+Location and file name of which the prediction results are saved.
+
+The results are saved in a HDF5 file.
+If a file is found at `predicting.save_as`, VyPER will not overwrite the file but throws an error.
+
+
 ## device
 
 Configurations of the hardware to be used for training and reconstruction.
