@@ -57,7 +57,7 @@ def objective(trial: optuna.trial.Trial) -> float:
     )
 
     _use_hyperedge = 'hyperedge' in CONFIGS['target'].keys()
-    _use_diffusion = 'neutrinos' in cfg['target'].keys()
+    _use_diffusion = 'neutrinos' in CONFIGS['target'].keys()
 
     try:
         model = VyPER(

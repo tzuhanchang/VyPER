@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Fixed
+ - Fix reference to CONFIGS in `tune.py` ([#50](https://github.com/tzuhanchang/VyPER/pull/50))
  - Fix `sum` method in `edge_reduction` ([#48](https://github.com/tzuhanchang/VyPER/pull/48))
 
 
