@@ -3,6 +3,7 @@ import os.path as osp
 import numpy
 import hydra
 import torch
+import torch_geometric
 import lightning.pytorch as pl
 import pandas as pd
 
@@ -84,4 +85,10 @@ def Predict(cfg : DictConfig) -> None:
 
 if __name__ == '__main__':
     torch.set_float32_matmul_precision('medium')
+
+    # Required since PyTorch 2.6, see [#53](https://github.com/tzuhanchang/VyPER/pull/53).
+    torch.serialization.add_safe_globals([torch_geometric.data.data.DataEdgeAttr])
+    torch.serialization.add_safe_globals([torch_geometric.data.data.DataTensorAttr])
+    torch.serialization.add_safe_globals([torch_geometric.data.storage.GlobalStorage])
+
     Predict()
