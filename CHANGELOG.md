@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Add missing documentation for the predicting configuration block ([#49](https://github.com/tzuhanchang/VyPER/pull/49))
 
 ### Changed
+ - Upgrade dependencies: Python 3.12, PyTorch 2.8, CUDA 12.8 ([#51](https://github.com/tzuhanchang/VyPER/pull/51))
  - Allow users to define `num_sampling_steps` independently for training and predicting ([#46](https://github.com/tzuhanchang/VyPER/pull/46))
  - Generalize the network for zero-neutrino topologies ([#45](https://github.com/tzuhanchang/VyPER/pull/45))
 
