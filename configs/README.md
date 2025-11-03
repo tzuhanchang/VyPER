@@ -169,6 +169,8 @@ This option is used only if `neutrinos` is set to be larger than 0 in [target.to
 
 Number of attention heads in the attention layers.
 
+This option is used only if `neutrinos` is set to be larger than 0 in [target.topology](#targettopology).
+
 
 ### network.num_message_layers
 
