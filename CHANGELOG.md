@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+ - Add more user-configurable options for the diffusion module ([#57](https://github.com/tzuhanchang/VyPER/pull/57))
  - Add missing documentation for the predicting configuration block ([#49](https://github.com/tzuhanchang/VyPER/pull/49))
 
 ### Changed
