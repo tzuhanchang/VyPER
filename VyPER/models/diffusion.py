@@ -38,6 +38,7 @@ class NeutrinoDiffusion(nn.Module):
         d_target: int,
         num_heads: int,
         num_message_steps: int,
+        num_dit_blocks: int = 4,
         num_sampling_steps: int = 1000
     ) -> None:
         super().__init__()
@@ -50,7 +51,7 @@ class NeutrinoDiffusion(nn.Module):
 
         self.Denoiser = Denoiser(
             d_embed=d_embed,
-            depth=4,
+            depth=num_dit_blocks,
             num_heads=num_heads,
             d_x=d_target,
             d_ctx=(d_ctx*num_message_steps),
