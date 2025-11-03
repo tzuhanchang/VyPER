@@ -10,6 +10,7 @@ from VyPER.data import VyPERDataModule
 from VyPER.models import VyPER
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig, OmegaConf
+from packaging import version
 
 
 def objective(trial: optuna.trial.Trial) -> float:
@@ -141,8 +142,7 @@ if __name__ == '__main__':
     torch.set_float32_matmul_precision('medium')
 
     # Required since PyTorch 2.6, see [#53](https://github.com/tzuhanchang/VyPER/pull/53).
-    torch.serialization.add_safe_globals([torch_geometric.data.data.DataEdgeAttr])
-    torch.serialization.add_safe_globals([torch_geometric.data.data.DataTensorAttr])
-    torch.serialization.add_safe_globals([torch_geometric.data.storage.GlobalStorage])
+    if version.parse(torch.__version__) >= version.parse("2.6"):
+        torch.serialization.add_safe_globals([torch_geometric.data.data.DataEdgeAttr,torch_geometric.data.data.DataTensorAttr,torch_geometric.data.storage.GlobalStorage])
 
     Tune()
