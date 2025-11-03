@@ -41,8 +41,10 @@ overwrites the default [training.learning_rate](#traininglearning_rate) to `0.00
 - [network](#network)
 
     * [network.message_feats](#networkmessage_feats)
+    * [network.attn_feats](#networkattn_feats)
     * [network.num_attn_heads](#networknum_attn_heads)
     * [network.num_message_layers](#networknum_message_layers)
+    * [network.num_dit_blocks](#networknum_dit_blocks)
     * [network.hyperedge_feats](#networkhyperedge_feats)
     * [network.hyperedge_order](#networkhyperedge_order)
 
@@ -156,6 +158,13 @@ Configurations of the network architecture.
 Message embedding size during message-passing operation.
 
 
+### network.attn_feats
+
+Embedding length of the DiT block(s).
+
+This option is used only if `neutrinos` is set to be larger than 0 in [target.topology](#targettopology).
+
+
 ### network.num_attn_heads
 
 Number of attention heads in the attention layers.
@@ -166,9 +175,18 @@ Number of attention heads in the attention layers.
 Number of message-passing layers.
 
 
+### network.num_dit_blocks
+
+Number of DiT blocks used in the diffusion.
+
+This option is used only if `neutrinos` is set to be larger than 0 in [target.topology](#targettopology).
+
+
 ### network.hyperedge_feats
 
 Hyperedge embedding size.
+
+This option is used only if `hyperedge` is set to be larger than 0 in [target.topology](#targettopology).
 
 
 ### network.hyperedge_order
