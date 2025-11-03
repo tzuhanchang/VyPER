@@ -124,7 +124,7 @@ class VyPER(LightningModule):
         # elif
         # -------------------------------------
         else:
-            raise NotImplementedError("Supported optimizers are: `torch.Adam`.")
+            raise NotImplementedError("Supported optimizers are: `Adam`, `AdamW` and `SGD`.")
         return optimizer
 
     def training_step(self, train_batch, batch_idx):
