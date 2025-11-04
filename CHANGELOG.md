@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Removed
+
+### Fixed
+
+
+## [0.2.2-alpha] - 2025-11-04
+
+### Added
  - Add more user-configurable options for the diffusion module ([#57](https://github.com/tzuhanchang/VyPER/pull/57))
  - Add missing documentation for the predicting configuration block ([#49](https://github.com/tzuhanchang/VyPER/pull/49))
 
@@ -15,8 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Upgrade dependencies: Python 3.12, PyTorch 2.8, CUDA 12.8 ([#51](https://github.com/tzuhanchang/VyPER/pull/51))
  - Allow users to define `num_sampling_steps` independently for training and predicting ([#46](https://github.com/tzuhanchang/VyPER/pull/46))
  - Generalize the network for zero-neutrino topologies ([#45](https://github.com/tzuhanchang/VyPER/pull/45))
-
-### Removed
 
 ### Fixed
  - Fix `num_sampling_steps` is not in struct error in `tune.py` ([#55](https://github.com/tzuhanchang/VyPER/pull/55))
@@ -83,6 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Fix the missing `x_fw_mask` and `edge_fw_mask` ([#6](https://github.com/tzuhanchang/VyPER/pull/6))
  - Fix input data not being transformed/scaled ([#3](https://github.com/tzuhanchang/VyPER/pull/3))
 
+[0.2.2-alpha]: https://github.com/tzuhanchang/VyPER/compare/v0.2.1-alpha...v0.2.2-alpha
 [0.2.1-alpha]: https://github.com/tzuhanchang/VyPER/compare/v0.2.0-alpha...v0.2.1-alpha
 [0.2.0-alpha]: https://github.com/tzuhanchang/VyPER/compare/v0.1.1-alpha...v0.2.0-alpha
 [0.1.1-alpha]: https://github.com/tzuhanchang/VyPER/compare/v0.1.0-alpha...v0.1.1-alpha
