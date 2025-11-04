@@ -138,11 +138,17 @@ class VyPERDataModule(LightningDataModule):
         table.add_column("Name", justify="left")
         table.add_column("Value", justify="left")
         table.add_row("Drop last batch", str(self.drop_last))
+        table.add_row("Force reload", str(self.force_reload))
+        table.add_row("Cache directory", str(self.cache_dir))
         if self.train_data is not None:
+            table.add_row("Training file path", str(self.train_set))
             table.add_row("Training samples", str(len(self.train_data)))
         if self.val_data is not None:
+            if self.val_set is not None:
+                table.add_row("Validation file path", str(self.val_set))
             table.add_row("Validation samples", str(len(self.val_data)))
         if self.predict_data is not None:
+            table.add_row("Prediction file path", str(self.predict_set))
             table.add_row("Prediction samples", str(len(self.predict_data)))
         table.add_row("N node attributes", str(self.node_in_channels))
         table.add_row("N edge attributes", str(self.edge_in_channels))
