@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+ - Add input dataset path printout ([#59](https://github.com/tzuhanchang/VyPER/pull/59))
 
 ### Changed
 
