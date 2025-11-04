@@ -22,12 +22,7 @@ class Mlp(nn.Module):
             ) for _ in range(depth)
         ] + [
             # Output Layer
-            nn.Sequential(
-                nn.Linear(d_hidden, d_hidden, bias=bias),
-                activation,
-                nn.Dropout(p=dropout),
-                nn.Linear(d_hidden, d_out, bias=bias),
-            )
+            nn.Linear(d_hidden, d_out, bias=bias)
         ])
 
         self.reset_parameters()
