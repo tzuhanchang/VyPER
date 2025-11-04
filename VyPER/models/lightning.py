@@ -23,6 +23,7 @@ class VyPER(LightningModule):
         hyperedge_out_channels: int,
         nu_out_channels: Optional[int] = None,
         message_feats: int = 32,
+        attn_feats: int = 32,
         dropout: float = 0.01,
         num_message_layers: int = 3,
         use_hyperedge: bool = True,
@@ -31,6 +32,7 @@ class VyPER(LightningModule):
         hyperedge_order: int = 3,
         num_sampling_steps: int = 50,
         num_attn_heads: int = 1,
+        num_dit_blocks: int = 4,
         optimizer: str = "Adam",
         lr: float = 1e-3,
         weight_decay: float = 0.01,
@@ -64,10 +66,11 @@ class VyPER(LightningModule):
         if self.hparams.use_diffusion:
             self.NeutrinoDiffusion = NeutrinoDiffusion(
                 d_ctx=self.hparams.message_feats,
-                d_embed=self.hparams.message_feats,
+                d_embed=self.hparams.attn_feats,
                 d_target=self.hparams.nu_out_channels,
                 num_heads=self.hparams.num_attn_heads,
                 num_message_steps=self.hparams.num_message_layers,
+                num_dit_blocks=self.hparams.num_dit_blocks,
                 num_sampling_steps=self.hparams.num_sampling_steps
             )
 
@@ -121,7 +124,7 @@ class VyPER(LightningModule):
         # elif
         # -------------------------------------
         else:
-            raise NotImplementedError("Supported optimizers are: `torch.Adam`.")
+            raise NotImplementedError("Supported optimizers are: `Adam`, `AdamW` and `SGD`.")
         return optimizer
 
     def training_step(self, train_batch, batch_idx):
@@ -228,7 +231,7 @@ class VyPER(LightningModule):
                             on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
         else:
             hyperedge_loss = None
-        
+
         # Compute total network loss
         loss = CombinedLoss(edge_loss, nu_loss, hyperedge_loss, reduction=self.hparams.reduction,
                             alpha=self.hparams.alpha, eta=self.hparams.eta)

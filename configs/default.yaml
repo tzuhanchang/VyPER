@@ -14,8 +14,10 @@ datasets:
 
 network:
   message_feats:      64
+  attn_feats:         128
   num_attn_heads:     8
   num_message_layers: 3
+  num_dit_blocks:     4
   hyperedge_feats:    128
   hyperedge_order:    3
 
