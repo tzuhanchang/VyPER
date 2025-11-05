@@ -78,7 +78,8 @@ def Train(cfg : DictConfig) -> None:
         momentum = cfg['training']['momentum'],
         alpha = cfg['training']['alpha'],
         eta = cfg['training']['eta'],
-        reduction = cfg['training']['loss_reduction']
+        reduction = cfg['training']['loss_reduction'],
+        lr_scheduler=cfg['training']['lr_scheduler']
     )
 
     callbacks = [

@@ -66,6 +66,7 @@ overwrites the default [training.learning_rate](#traininglearning_rate) to `0.00
     * [training.patience](#trainingpatience)
     * [training.save_directory](#trainingsave_directory)
     * [training.continue_from_ckpt](#trainingcontinue_from_ckpt)
+    * [training.lr_scheduler](#traininglr_scheduler)
 
 - [predicting](#predicting)
 
@@ -306,6 +307,29 @@ Location where the training states are saved.
 Path where the training state is loaded and continuing training.
 
 Set to `null` not loading any checkpoints, and start a new training.
+
+
+### training.lr_scheduler
+
+A learning rate scheduler adjusts the learning rate during training to potentially improve model convergence and stability.
+
+Example:
+```yaml
+training:
+  lr_scheduler:
+    method: torch.optim.lr_scheduler.ReduceLROnPlateau
+    kwargs:
+      mode:   min
+      factor: 0.8
+      patience: 5
+  ...
+```
+In this example, `torch.optim.lr_scheduler.ReduceLROnPlateau` is used to dynamically adjust the learning rate based on the validation loss.
+This learning rate scheduler takes three keyward args: `mode`, `factor` and `patience`.
+
+User can use different methods found on https://docs.pytorch.org/docs/stable/optim.html.
+
+Set to `null` to disable learning rate adjustment during training.
 
 
 ## predicting
