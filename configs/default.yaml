@@ -38,6 +38,12 @@ training:
   patience:           10
   save_directory:     logs
   continue_from_ckpt: null
+  lr_scheduler:
+    method: torch.optim.lr_scheduler.ReduceLROnPlateau
+    kwargs:
+      mode:   min
+      factor: 0.8
+      patience: 5
 
 predicting:
   model_directory:    logs/version_0
