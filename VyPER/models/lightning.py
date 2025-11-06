@@ -39,7 +39,8 @@ class VyPER(LightningModule):
         momentum: float = 0.0,
         alpha: float = 0.5,
         eta: float = 0.5,
-        reduction: float = 'mean'
+        reduction: float = 'mean',
+        lr_scheduler: Optional[dict] = None,
     ) -> None:
 
         super().__init__()
@@ -125,6 +126,11 @@ class VyPER(LightningModule):
         # -------------------------------------
         else:
             raise NotImplementedError("Supported optimizers are: `Adam`, `AdamW` and `SGD`.")
+        
+        if self.hparams.lr_scheduler is not None:
+            optimizer = {"optimizer": optimizer,
+                         "lr_scheduler": {"scheduler": eval(self.hparams.lr_scheduler['method'])(optimizer, **self.hparams.lr_scheduler['kwargs']),
+                                          "interval": "epoch", "monitor": "loss/validation_loss", "frequency": 1, "strict": True}}
         return optimizer
 
     def training_step(self, train_batch, batch_idx):
