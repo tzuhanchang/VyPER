@@ -5,7 +5,7 @@ dependencies:
   - python=3.12.*
   - pip
   - pip:
-    - torch=2.8.*
+    - torch==2.8.*
     - torch_geometric
     - https://data.pyg.org/whl/torch-2.8.0%2Bcpu/torch_scatter-2.1.2-cp312-cp312-macosx_10_13_universal2.whl
     - numpy==1.26.4
