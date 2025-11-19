@@ -44,6 +44,9 @@ training:
       mode:   min
       factor: 0.8
       patience: 5
+  save_ckpts:
+    accuracy/edge_channel_1: max
+    accuracy/dR_mean: min
 
 predicting:
   model_directory:    logs/version_0

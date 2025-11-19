@@ -86,10 +86,10 @@ def Train(cfg : DictConfig) -> None:
         ModelCheckpoint(
             verbose=True,
             monitor="loss/validation_loss",
-            save_top_k=5,
+            save_top_k=1,
             mode="min",
             save_last=True,
-            filename="epoch={epoch}-loss={loss/validation_loss:.3f}-dR={accuracy/dR_mean:.3f}",
+            filename="epoch={epoch}-loss={loss/validation_loss:.3f}",
             auto_insert_metric_name=False,
             enable_version_counter=False
         ),
@@ -98,26 +98,25 @@ def Train(cfg : DictConfig) -> None:
             mode="min",
             min_delta=0.00,
             patience=cfg['training']['patience'],
-            verbose=False
-        ),
+            verbose=False),
         LearningRateMonitor(),
         DeviceStatsMonitor(),
         RichProgressBar() if _RICH_AVAILABLE else TQDMProgressBar(),
         RichModelSummary(max_depth=2) if _RICH_AVAILABLE else ModelSummary(max_depth=2)
     ]
-    if _use_diffusion:
-        callbacks += [
+
+    for monitor, mode in cfg['training']['save_ckpts'].items():
+        safe_monitor = monitor.replace('/', '_')
+        callbacks.append(
             ModelCheckpoint(
-                verbose=True,
-                monitor="accuracy/dR_mean",
-                save_top_k=5,
-                mode="min",
+                filename="epoch={epoch}-"+safe_monitor+"={"+monitor+":.3f}",
+                monitor=monitor,
+                mode=mode,
+                save_top_k=1,
                 save_last=False,
-                filename="epoch={epoch}-loss={loss/validation_loss:.3f}-dR={accuracy/dR_mean:.3f}",
                 auto_insert_metric_name=False,
-                enable_version_counter=False
-            )]
-    # TODO: add hyperedge accuracy checkpoint.
+            )
+        )
 
     trainer = pl.Trainer(
         accelerator = cfg['device']['accelerator'],
