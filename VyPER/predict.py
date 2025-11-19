@@ -9,7 +9,7 @@ import pandas as pd
 
 from VyPER.data import VyPERDataModule
 from VyPER.models import VyPER
-from VyPER.io import PredictionWriter
+from VyPER.io import ckpt_loader, PredictionWriter
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig, OmegaConf
 from packaging import version
@@ -25,26 +25,13 @@ def Predict(cfg : DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
 
     map_location = torch.device('cuda') if cfg['device']['accelerator'].lower() == "gpu" else torch.device('cpu')
-    model_directory = cfg['predicting']['model_directory']
-    model_choice = cfg['predicting']['model_choice'].split('-')
 
     # Load checkpoint
-    if len(model_choice) != 2:
-        raise UserWarning(f"Invalid `model_choice`: {cfg['predicting']['model_choice']}, use the last checkpoint instead.")
-        ckpt_file = osp.join(model_directory, 'checkpoints', 'last.ckpt')
-    else:
-        assert model_directory is not None, "No `model_directory` provided. Abort!"
-        ckpt_files = [filename.strip('.ckpt').split('-') for filename in
-                    os.listdir(osp.join(model_directory, "checkpoints")) if filename.startswith("epoch")]
-        ckpt_db = pd.DataFrame([{k: float(v) for k, v in (item.split('=') for item in entry)} for entry in ckpt_files])
-
-        ckpt_idx = getattr(numpy, 'arg'+model_choice[0])(ckpt_db[model_choice[1]])
-        print(f"Loading checkpoint: {'-'.join(ckpt_files[ckpt_idx])+'.ckpt'}.")
-        ckpt_file = osp.join(model_directory, 'checkpoints', '-'.join(ckpt_files[ckpt_idx])+'.ckpt')
+    ckpt_file = ckpt_loader(cfg)
 
     # Load hyperparameters
-    hparams_file = osp.join(model_directory, "hparams.yaml")
-    assert os.path.isfile(hparams_file), f"`hparams.ymal` is not found in {model_directory}."
+    hparams_file = osp.join(cfg['predicting']['model_directory'], "hparams.yaml")
+    assert os.path.isfile(hparams_file), f"`hparams.ymal` is not found in {cfg['predicting']['model_directory']}."
 
     datamodule = VyPERDataModule(
         config = osp.join(hydra.utils.get_original_cwd(), f'configs/{HydraConfig.get().job.config_name}.yaml'),

@@ -67,6 +67,7 @@ overwrites the default [training.learning_rate](#traininglearning_rate) to `0.00
     * [training.save_directory](#trainingsave_directory)
     * [training.continue_from_ckpt](#trainingcontinue_from_ckpt)
     * [training.lr_scheduler](#traininglr_scheduler)
+    * [training.save_ckpts](#trainingsave_ckpts)
 
 - [predicting](#predicting)
 
@@ -330,6 +331,31 @@ This learning rate scheduler takes three keyward args: `mode`, `factor` and `pat
 User can use different methods found on https://docs.pytorch.org/docs/stable/optim.html.
 
 Set to `null` to disable learning rate adjustment during training.
+
+
+### training.save_ckpts
+
+Define model checkpoints to save.
+
+Validation loss is automatically logged, no need to specify it here.
+
+Example:
+```yaml
+training:
+  save_ckpts:
+    accuracy/edge_channel_1: max
+    accuracy/dR_mean: min
+```
+In this example, checkpoints with maximum `accuracy/edge_channel_1` and minimum `accuracy/dR_mean` are saved. `accuracy/edge_channel_1` and `accuracy/dR_mean` are two metrics used in the pytorch_lightning logging.
+
+Available metrics are:
+ - `accuracy/dR_mean`
+ - `accuracy/edge_channel_<class_index>`
+ - `accuracy/hyperedge_channel_<class_index>`
+
+<class_index> is the index of the class in the multiclass classification.
+Class index of 0 always represents the combinatorial background.
+In the example configuration file [configs/default.yaml](default.yaml), class index 1 represents the target edge `bl`.
 
 
 ## predicting
