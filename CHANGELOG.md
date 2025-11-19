@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Fixed
+ - Fix `pip` version specifiers in MacOS environment file ([#61](https://github.com/tzuhanchang/VyPER/pull/61))
 
 
 ## [0.2.2-alpha] - 2025-11-04
