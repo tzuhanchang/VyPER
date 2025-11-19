@@ -123,7 +123,7 @@ class GlobalModel(Module):
     ):
         super().__init__()
 
-        self.global_mlp = Mlp(d_in=2*d_node+2*d_edge+d_glob,
+        self.global_mlp = Mlp(d_in=2*d_node+d_glob,
                               d_out=d_out,
                               d_hidden=d_embed,
                               depth=1,
@@ -135,12 +135,9 @@ class GlobalModel(Module):
         self.global_mlp.reset_parameters()
 
     def forward(self, x, edge_index, edge_attr, u, batch):
-        src, _ = edge_index
         out = torch.cat([u,
             scatter(x, batch, dim=0, dim_size=u.size(0), reduce='mean'),
-            scatter(x, batch, dim=0, dim_size=u.size(0), reduce='max'),
-            scatter(edge_attr, batch[src], dim=0, dim_size=u.size(0), reduce='mean'),
-            scatter(edge_attr, batch[src], dim=0, dim_size=u.size(0), reduce='max')], dim=1).float()
+            scatter(x, batch, dim=0, dim_size=u.size(0), reduce='max')], dim=1).float()
         return self.global_mlp(out)
 
 
@@ -209,7 +206,7 @@ class NeutrinoModel(Module):
             activation=SiLU()
         )
         self.backward_pass_norm = LayerNorm(d_node, elementwise_affine=False, eps=1e-6)
-        self.backward_pass_modulation = Seq(SiLU(), Linear(d_node, 2 * d_node, bias=True))
+        self.backward_pass_modulation = Seq(SiLU(), Linear(d_node, 3 * d_node, bias=True))
 
     def reset_parameters(self):
         r"""Resets all learnable parameters of the module."""
@@ -245,10 +242,13 @@ class NeutrinoModel(Module):
 
         ctx_out  = self.ctx_out(torch.cat([ctx, ctx_rel[nu_batch]], dim=1))
 
-        # Backward lepton pass
-        backward_in = self.backward_pass_mlp(ctx_out)
-        shift, scale = self.backward_pass_modulation(backward_in).chunk(2, dim=1)
-        backward_pass = self.backward_pass_norm(backward_in) * (1 + scale) + shift
-        backward_out = torch.zeros_like(x, device=x.device, dtype=x.dtype)
-        backward_out[lep_node.to(torch.bool)] = backward_pass
-        return ctx_out, (x + backward_out)
+        # Conditional AdaLN modulation for backward message passing
+        shift, scale, scale_f  = self.backward_pass_modulation(x[lep_node.to(torch.bool)]).chunk(3, dim=1)
+        backward_pass = self.backward_pass_norm(self.backward_pass_mlp(ctx_out)) * (1 + scale) + shift
+
+        # Backward message passing
+        backward_shift, backward_scale = (torch.zeros_like(x, device=x.device, dtype=x.dtype),
+                                          torch.zeros_like(x, device=x.device, dtype=x.dtype))
+        backward_shift[lep_node.to(torch.bool)] = backward_pass
+        backward_scale[lep_node.to(torch.bool)] = scale_f
+        return ctx_out, (x * (1 + backward_scale) + backward_shift)

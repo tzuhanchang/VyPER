@@ -236,11 +236,11 @@ class MPNNs(nn.Module):
                     )
                 )
 
-        self.final_edge_layer = Mlp(
+        self.FinalEdgeLayer = Mlp(
             d_in=message_feats,
             d_out=edge_out_channels,
             d_hidden=message_feats,
-            depth=4,
+            depth=1,
             activation=nn.ReLU(),
             dropout=dropout,
             bias=True)
@@ -250,7 +250,7 @@ class MPNNs(nn.Module):
         for i in range(self.num_layers):
             for layer in getattr(self, 'MessagePassing' + str(i)).children():
                 layer.reset_parameters()
-            self.final_edge_layer.reset_parameters()
+            self.FinalEdgeLayer.reset_parameters()
 
     def forward(self, x, edge_index, edge_attr, u, batch,
                 lep_node: Optional[torch.tensor]=None,
@@ -272,6 +272,6 @@ class MPNNs(nn.Module):
                 )
 
         # Summarising
-        edge_attr = self.final_edge_layer(edge_attr)
+        edge_attr = self.FinalEdgeLayer(edge_attr)
         nu_ctx = torch.cat(nu_ctx, dim=1).float() if self._use_neutrino else None
         return [x, edge_attr, u, nu_ctx]
