@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Add input dataset path printout ([#59](https://github.com/tzuhanchang/VyPER/pull/59))
 
 ### Changed
+ - Change how model checkpoints are saved and loaded ([#63](https://github.com/tzuhanchang/VyPER/pull/63))
 
 ### Removed
 
