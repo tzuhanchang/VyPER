@@ -35,8 +35,10 @@ class MPBlock(nn.Module):
 
     def reset_parameters(self):
         r"""Resets all learnable parameters of the module."""
-        for model in [self.edge_model, self.node_model, self.glob_model, self.neutrino_model]:
+        for model in [self.edge_model, self.node_model, self.glob_model]:
             model.reset_parameters()
+        if self.neutrino_model is not None:
+            self.neutrino_model.reset_parameters()
 
     def forward(self, x, batch, edge_attr, edge_index, u, lep_node=None, lep_forward_edge=None):
         if self.neutrino_model is not None:
