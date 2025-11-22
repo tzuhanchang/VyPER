@@ -1,7 +1,9 @@
 import torch
 
-from torch.nn import Module, Sequential as Seq, Linear, ReLU, Dropout, SiLU, LayerNorm
+from torch.nn import Module, Sequential as Seq, Linear, ReLU, SiLU, LayerNorm
 from torch_geometric.utils import scatter
+
+from .mlp import Mlp
 
 
 class EdgeModel(Module):
@@ -28,22 +30,20 @@ class EdgeModel(Module):
     ):
         super().__init__()
 
-        self.edge_mlp = Seq(
-            Linear(2*d_node+d_edge+d_glob, d_embed),
-            ReLU(),
-            Dropout(p=dropout),
-            Linear(d_embed, d_embed),
-            ReLU(),
-            Dropout(p=dropout),
-            Linear(d_embed, d_out)
-        )
+        self.edge_mlp = Mlp(d_in=2*d_node+d_edge+d_glob,
+                            d_out=d_out,
+                            d_hidden=d_embed,
+                            depth=1,
+                            dropout=dropout,
+                            activation=ReLU())
 
-    def forward(self, src, dest, edge_attr, u, batch):
-        # source, target: [E, F_x], where E is the number of edges.
-        # edge_attr: [E, F_e]
-        # u: [B, F_u], where B is the number of graphs.
-        # batch: [E] with max entry B - 1.
-        out = torch.cat([src, dest, edge_attr, u[batch]], 1).float()
+    def reset_parameters(self):
+        r"""Resets all learnable parameters of the module."""
+        self.edge_mlp.reset_parameters()
+
+    def forward(self, x, edge_index, edge_attr, u, batch):
+        src, dest = edge_index
+        out = torch.cat([x[src], x[dest], edge_attr, u[batch[src]]], 1).float()
         return self.edge_mlp(out)
 
 
@@ -71,38 +71,32 @@ class NodeModel(Module):
     ):
         super().__init__()
 
-        self.node_mlp_1 = Seq(
-            Linear(2*d_node+d_edge, d_embed),
-            ReLU(),
-            Dropout(p=dropout),
-            Linear(d_embed, d_embed),
-            ReLU(),
-            Dropout(p=dropout),
-            Linear(d_embed, d_embed)
-        )
-        self.node_mlp_2 = Seq(
-            Linear(2*d_embed+d_node+d_glob, d_embed),
-            ReLU(),
-            Dropout(p=dropout),
-            Linear(d_embed, d_embed),
-            ReLU(),
-            Dropout(p=dropout),
-            Linear(d_embed, d_out)
-        )
+        self.msg_mlp  = Mlp(d_in=2*d_node+d_edge,
+                            d_out=d_embed,
+                            d_hidden=d_embed,
+                            depth=1,
+                            dropout=dropout,
+                            activation=ReLU())
+        self.node_mlp = Mlp(d_in=2*d_embed+d_node+d_glob,
+                            d_out=d_out,
+                            d_hidden=d_embed,
+                            depth=1,
+                            dropout=dropout,
+                            activation=ReLU())
+
+    def reset_parameters(self):
+        r"""Resets all learnable parameters of the module."""
+        self.msg_mlp.reset_parameters()
+        self.node_mlp.reset_parameters()
 
     def forward(self, x, edge_index, edge_attr, u, batch):
-        # x: [N, F_x], where N is the number of nodes.
-        # edge_index: [2, E] with max entry N - 1.
-        # edge_attr: [E, F_e]
-        # u: [B, F_u]
-        # batch: [N] with max entry B - 1.
-        row, col = edge_index
-        out = torch.cat([x[row], x[col], edge_attr], 1).float()
-        out = self.node_mlp_1(out) # message
-        agg_mean = scatter(out, col, dim=0, dim_size=x.size(0), reduce='mean')
-        agg_max = scatter(out, col, dim=0, dim_size=x.size(0), reduce='max')
+        src, dest = edge_index
+        message = torch.cat([x[src], x[dest], edge_attr], 1).float()
+        message = self.msg_mlp(message)
+        agg_mean = scatter(message, dest, dim=0, dim_size=x.size(0), reduce='mean')
+        agg_max = scatter(message, dest, dim=0, dim_size=x.size(0), reduce='max')
         out = torch.cat([x, agg_mean, agg_max, u[batch]], dim=1).float()
-        return self.node_mlp_2(out) # update node with message
+        return self.node_mlp(out) # update node with message
 
 
 class GlobalModel(Module):
@@ -112,45 +106,12 @@ class GlobalModel(Module):
 
     Args:
         d_node (int): number of node features of input graph.
+        d_edge (int): number of edge features of input graph.
         d_glob (int): number of global features of input graph.
         d_out (int): number of global features after updates.
         d_embed (int, optional): number of intermediate features. (default :obj:`int`=32)
         dropout (float, optional): probability of an element to be zeroed. (default :obj:`float`=0.01)
     """
-    def __init__(
-        self,
-        d_node: int,
-        d_glob: int,
-        d_out: int,
-        d_embed: int=32,
-        dropout: float=0.01
-    ):
-        super().__init__()
-
-        self.global_mlp = Seq(
-            Linear(2*d_node+d_glob, d_embed),
-            ReLU(),
-            Dropout(p=dropout),
-            Linear(d_embed, d_embed),
-            ReLU(),
-            Dropout(p=dropout),
-            Linear(d_embed, d_out)
-        )
-
-    def forward(self, x, edge_index, edge_attr, u, batch):
-        # x: [N, F_x], where N is the number of nodes.
-        # edge_index: [2, E] with max entry N - 1.
-        # edge_attr: [E, F_e]
-        # u: [B, F_u]
-        # batch: [N] with max entry B - 1.
-        out = torch.cat([u,
-            scatter(x, batch, dim=0, dim_size=u.size(0), reduce='mean'),
-            scatter(x, batch, dim=0, dim_size=u.size(0), reduce='max')], dim=1
-        ).float()
-        return self.global_mlp(out)
-
-
-class NeutrinoModel(Module):
     def __init__(
         self,
         d_node: int,
@@ -162,57 +123,102 @@ class NeutrinoModel(Module):
     ):
         super().__init__()
 
-        self.ctx_lep_pass = Seq(
-            Linear(2*d_node+d_edge, d_embed),
-            SiLU(),
-            Dropout(p=dropout),
-            Linear(d_embed, d_embed),
-            SiLU(),
-            Dropout(p=dropout),
-            Linear(d_embed, d_embed)
-        )
-        self.ctx_nu_summarise = Seq(
-            Linear(d_embed+d_node+d_glob, d_embed),
-            SiLU(),
-            Dropout(p=dropout),
-            Linear(d_embed, d_embed),
-            SiLU(),
-            Dropout(p=dropout),
-            Linear(d_embed, d_embed)
-        )
-        self.ctx_nu_relative = Seq(
-            Linear(d_embed+d_glob, d_embed),
-            SiLU(),
-            Dropout(p=dropout),
-            Linear(d_embed, d_embed),
-            SiLU(),
-            Dropout(p=dropout),
-            Linear(d_embed, d_embed)
-        )
-        self.ctx_out = Seq(
-            Linear(2*d_embed, d_embed),
-            SiLU(),
-            Dropout(p=dropout),
-            Linear(d_embed, d_embed),
-            SiLU(),
-            Dropout(p=dropout),
-            Linear(d_embed, d_out)
-        )
+        self.global_mlp = Mlp(d_in=2*d_node+d_glob,
+                              d_out=d_out,
+                              d_hidden=d_embed,
+                              depth=1,
+                              dropout=dropout,
+                              activation=ReLU())
 
-        self.backward_pass_mlp = Seq(
-            Linear(d_out, d_embed),
-            SiLU(),
-            Dropout(p=dropout),
-            Linear(d_embed, d_embed),
-            SiLU(),
-            Dropout(p=dropout),
-            Linear(d_embed, d_node)
+    def reset_parameters(self):
+        r"""Resets all learnable parameters of the module."""
+        self.global_mlp.reset_parameters()
+
+    def forward(self, x, edge_index, edge_attr, u, batch):
+        out = torch.cat([u,
+            scatter(x, batch, dim=0, dim_size=u.size(0), reduce='mean'),
+            scatter(x, batch, dim=0, dim_size=u.size(0), reduce='max')], dim=1).float()
+        return self.global_mlp(out)
+
+
+class NeutrinoModel(Module):
+    r"""A callable which extracts neutrino context vectors based
+    on its node features, its graph connectivity, its edge features
+    and its current global features.
+
+    Args:
+        d_node (int): number of node features of input graph.
+        d_edge (int): number of edge features of input graph.
+        d_glob (int): number of global features of input graph.
+        d_out (int): number of global features after updates.
+        d_embed (int, optional): number of intermediate features. (default :obj:`int`=32)
+        dropout (float, optional): probability of an element to be zeroed. (default :obj:`float`=0.01)
+    """
+    def __init__(
+        self,
+        d_node: int,
+        d_edge: int,
+        d_glob: int,
+        d_out: int,
+        d_embed: int=32,
+        dropout: float=0.01
+    ):
+        super().__init__()
+
+        self.ctx_lep_pass = Mlp(
+            d_in=2*d_node+d_edge,
+            d_out=d_embed,
+            d_hidden=d_embed,
+            depth=1,
+            dropout=dropout,
+            activation=SiLU()
+        )
+        self.ctx_nu_summarise = Mlp(
+            d_in=d_node+d_glob+d_embed,
+            d_out=d_embed,
+            d_hidden=d_embed,
+            depth=1,
+            dropout=dropout,
+            activation=SiLU()
+        )
+        self.ctx_nu_relative = Mlp(
+            d_in=d_embed+d_glob,
+            d_out=d_embed,
+            d_hidden=d_embed,
+            depth=1,
+            dropout=dropout,
+            activation=SiLU()
+        )
+        self.ctx_out = Mlp(
+            d_in=2*d_embed,
+            d_out=d_out,
+            d_hidden=d_embed,
+            depth=1,
+            dropout=dropout,
+            activation=SiLU()
+        )
+        self.backward_pass_mlp = Mlp(
+            d_in=d_out,
+            d_out=d_node,
+            d_hidden=d_embed,
+            depth=1,
+            dropout=dropout,
+            activation=SiLU()
         )
         self.backward_pass_norm = LayerNorm(d_node, elementwise_affine=False, eps=1e-6)
-        self.backward_pass_modulation = Seq(
-            SiLU(),
-            Linear(d_node, 2 * d_node, bias=True)
-        )
+        self.backward_pass_modulation = Seq(SiLU(), Linear(d_node, 3 * d_node, bias=True))
+
+    def reset_parameters(self):
+        r"""Resets all learnable parameters of the module."""
+        self.ctx_lep_pass.reset_parameters()
+        self.ctx_nu_summarise.reset_parameters()
+        self.ctx_nu_relative.reset_parameters()
+        self.ctx_out.reset_parameters()
+        self.backward_pass_mlp.reset_parameters()
+        self.backward_pass_norm.reset_parameters()
+        for layer in self.backward_pass_modulation.children():
+            if hasattr(layer, 'reset_parameters'):
+                layer.reset_parameters()
 
     def forward(self, x, edge_index, edge_attr, u, batch, lep_node, lep_forward_edge):
         num_neutrinos = scatter(lep_node, index=batch, dim=0, dim_size=u.size(0), reduce='sum')
@@ -225,7 +231,9 @@ class NeutrinoModel(Module):
         # Context vector - summarise information for a given neutrino
         nu_batch = torch.unique(batch).repeat_interleave(num_neutrinos)
         _, dest = torch.unique(dest, return_inverse=True)
-        ctx = torch.cat([x[lep_node.to(torch.bool)], scatter(ctx, dest, dim=0, dim_size=num_neutrinos.sum(0), reduce='sum'), u[nu_batch]], dim=1).float()
+        ctx = torch.cat([x[lep_node.to(torch.bool)],
+                         scatter(ctx, dest, dim=0, dim_size=num_neutrinos.sum(0), reduce='sum'),
+                         u[nu_batch]], dim=1).float()
         ctx = self.ctx_nu_summarise(ctx)
 
         # Relative context vector - summarise context vectors in a given event
@@ -234,10 +242,13 @@ class NeutrinoModel(Module):
 
         ctx_out  = self.ctx_out(torch.cat([ctx, ctx_rel[nu_batch]], dim=1))
 
-        # Backward lepton pass
-        backward_in = self.backward_pass_mlp(ctx_out)
-        shift, scale = self.backward_pass_modulation(backward_in).chunk(2, dim=1)
-        backward_pass = self.backward_pass_norm(backward_in) * (1 + scale) + shift
-        backward_out = torch.zeros_like(x, device=x.device, dtype=x.dtype)
-        backward_out[lep_node.to(torch.bool)] = backward_pass
-        return ctx_out, (x + backward_out)
+        # Conditional AdaLN modulation for backward message passing
+        shift, scale, scale_f  = self.backward_pass_modulation(x[lep_node.to(torch.bool)]).chunk(3, dim=1)
+        backward_pass = self.backward_pass_norm(self.backward_pass_mlp(ctx_out)) * (1 + scale) + shift
+
+        # Backward message passing
+        backward_shift, backward_scale = (torch.zeros_like(x, device=x.device, dtype=x.dtype),
+                                          torch.zeros_like(x, device=x.device, dtype=x.dtype))
+        backward_shift[lep_node.to(torch.bool)] = backward_pass
+        backward_scale[lep_node.to(torch.bool)] = scale_f
+        return ctx_out, (x * (1 + backward_scale) + backward_shift)
