@@ -99,17 +99,23 @@ class VyPERDataset(Dataset):
             self.neutrino_momentum_func = None
 
         # Read target edge labels
-        edge_cantor = {}
-        for key, value in config['target']['edge'].items():
-            edge_cantor.update({key: []})
-            for target in value:
-                assert len(target) == 2
-                edge_cantor[key].append(
-                    [self._cantor_pairing(*[int(x) for x in target[i].split('-')]) for i in range(len(target))])
-            edge_cantor[key] = torch.tensor(edge_cantor[key],dtype=torch.float32).transpose(0,1)
-        self.target_edge_cantor = edge_cantor
-        self.edge_out_channels = len(self.target_edge_cantor.keys()) + 1
-        del edge_cantor
+        self._use_edge = True if 'edge' in config['target'].keys() else False
+        self.target_edge_cantor = None
+        self.edge_out_channels = None
+        if self._use_edge:
+            edge_cantor = {}
+            for key, value in config['target']['edge'].items():
+                edge_cantor.update({key: []})
+                for target in value:
+                    assert len(target) == 2
+                    edge_cantor[key].append(
+                        [self._cantor_pairing(*[int(x) for x in target[i].split('-')]) for i in range(len(target))])
+                edge_cantor[key] = torch.tensor(edge_cantor[key],dtype=torch.float32).transpose(0,1)
+            self.target_edge_cantor = edge_cantor
+            self.edge_out_channels = len(self.target_edge_cantor.keys()) + 1
+            del edge_cantor
+        else:
+            assert self.topo_max_num_edges == 0
 
         # Read target hyperedge labels
         self._use_hyperedge = True if 'hyperedge' in config['target'].keys() else False
@@ -381,9 +387,8 @@ class VyPERDataset(Dataset):
                         topo_max_num_hyperedges=torch.tensor([[self.topo_max_num_hyperedges]],dtype=torch.float32),
                         topo_num_neutrinos=torch.tensor([[self.topo_num_neutrinos]],dtype=torch.float32))
         else:
-            node_cantor = self.get_node_cantor_id(self.file['LABELS'],index)
-            edge_cantor = torch.cat([node_cantor[edge_index[0]].unsqueeze(0),
-                                    node_cantor[edge_index[1]].unsqueeze(0)])
+            if self._use_edge or self._use_hyperedge:
+                node_cantor = self.get_node_cantor_id(self.file['LABELS'],index)
             if self._use_hyperedge:
                 hyperedge_cantor = torch.cat([
                     node_cantor[hyperedge_index[i]].unsqueeze(0) for i in range(hyperedge_index.size(0))])
@@ -394,7 +399,12 @@ class VyPERDataset(Dataset):
                 neutrino_t = self.build_neutrino_target(self.file['LABELS'],index)
             else:
                 neutrino_t = None
-            edge_attr_t = self.build_edge_target(edge_cantor, edge_index)
+            if self._use_edge:
+                edge_cantor = torch.cat([node_cantor[edge_index[0]].unsqueeze(0),
+                                         node_cantor[edge_index[1]].unsqueeze(0)])
+                edge_attr_t = self.build_edge_target(edge_cantor, edge_index)
+            else:
+                edge_attr_t = None
             data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, u=u,
                         edge_attr_t=edge_attr_t, neutrino_t=neutrino_t,
                         x_fw_mask=x_fw_mask, edge_fw_mask=edge_fw_mask,

@@ -58,6 +58,7 @@ def objective(trial: optuna.trial.Trial) -> float:
         pin_memory = True if CONFIGS['device']['accelerator']=="gpu" else False
     )
 
+    _use_edge      = 'edge' in CONFIGS['target'].keys()
     _use_hyperedge = 'hyperedge' in CONFIGS['target'].keys()
     _use_diffusion = 'neutrinos' in CONFIGS['target'].keys()
 
@@ -66,13 +67,14 @@ def objective(trial: optuna.trial.Trial) -> float:
             node_in_channels = len(CONFIGS['input']['node_features'])+1,
             edge_in_channels = len(CONFIGS['input']['edge_features']),
             global_in_channels = len(CONFIGS['input']['global_features']),
-            edge_out_channels = len(CONFIGS['target']['edge'])+1,
+            edge_out_channels = len(CONFIGS['target']['edge'])+1 if _use_edge else 0,
             hyperedge_out_channels = len(CONFIGS['target']['hyperedge'])+1 if _use_hyperedge else None,
             nu_out_channels = len(CONFIGS['target']['neutrinos']['features']) if _use_diffusion else None,
             message_feats = CONFIGS['network']['message_feats'],
             attn_feats = CONFIGS['network']['attn_feats'],
             dropout = CONFIGS['training']['dropout'],
             num_message_layers = CONFIGS['network']['num_message_layers'],
+            use_edge = _use_edge,
             use_hyperedge = _use_hyperedge,
             use_diffusion = _use_diffusion,
             hyperedge_feats = CONFIGS['network']['hyperedge_feats'] if _use_hyperedge else None,

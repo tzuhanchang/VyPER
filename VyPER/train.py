@@ -51,6 +51,7 @@ def Train(cfg : DictConfig) -> None:
         pin_memory = True if cfg['device']['accelerator']=="gpu" else False
     )
 
+    _use_edge      = 'edge' in cfg['target'].keys()
     _use_hyperedge = 'hyperedge' in cfg['target'].keys()
     _use_diffusion = 'neutrinos' in cfg['target'].keys()
 
@@ -58,13 +59,14 @@ def Train(cfg : DictConfig) -> None:
         node_in_channels = len(cfg['input']['node_features'])+1,
         edge_in_channels = len(cfg['input']['edge_features']),
         global_in_channels = len(cfg['input']['global_features']),
-        edge_out_channels = len(cfg['target']['edge'])+1,
+        edge_out_channels = len(cfg['target']['edge'])+1 if _use_edge else 0,
         hyperedge_out_channels = len(cfg['target']['hyperedge'])+1 if _use_hyperedge else None,
         nu_out_channels = len(cfg['target']['neutrinos']['features']) if _use_diffusion else None,
         message_feats = cfg['network']['message_feats'],
         attn_feats = cfg['network']['attn_feats'],
         dropout = cfg['training']['dropout'],
         num_message_layers = cfg['network']['num_message_layers'],
+        use_edge = _use_edge,
         use_hyperedge = _use_hyperedge,
         use_diffusion = _use_diffusion,
         hyperedge_feats = cfg['network']['hyperedge_feats'] if _use_hyperedge else None,
