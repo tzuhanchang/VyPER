@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+ - Generalize the network for neutrino-only topologies ([#65](https://github.com/tzuhanchang/VyPER/pull/65))
 
 ### Changed
  - Streamlining message-passing framework ([#62](https://github.com/tzuhanchang/VyPER/pull/62))
