@@ -46,10 +46,11 @@ class PredictionWriter(BasePredictionWriter):
         index_dtype = h5py.vlen_dtype(np.dtype('int64'))
         value_dtype = h5py.vlen_dtype(np.dtype('float32'))
 
-        self.edge_index = data_group.create_dataset(
-            "EdgeIndex", (self.num_pred_events,2),dtype=index_dtype)
-        self.edge_out = data_group.create_dataset(
-            "EdgeSoftP", (self.num_pred_events,self.edge_out_channels), dtype=value_dtype)
+        if self.edge_out_channels > 0:
+            self.edge_index = data_group.create_dataset(
+                "EdgeIndex", (self.num_pred_events,2),dtype=index_dtype)
+            self.edge_out = data_group.create_dataset(
+                "EdgeSoftP", (self.num_pred_events,self.edge_out_channels), dtype=value_dtype)
         if self.num_neutrinos > 0:
             self.neutrino_out = data_group.create_dataset(
                 "Neutrino", (self.num_pred_events,self.num_neutrinos), dtype=value_dtype)
@@ -59,9 +60,6 @@ class PredictionWriter(BasePredictionWriter):
                 "HyperedgeIndex", (self.num_pred_events,self.hyperedge_order), dtype=index_dtype)
             self.hyperedge_out = data_group.create_dataset(
                 "HyperedgeSoftP", (self.num_pred_events,self.hyperedge_out_channels), dtype=value_dtype)
-        else:
-            self.hyperedge_index = None
-            self.hyperedge_out = None
 
     @torch.no_grad()
     def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, 
@@ -78,31 +76,33 @@ class PredictionWriter(BasePredictionWriter):
             self.num_pred_events = len(trainer.datamodule.predict_data)
             self.prepare_output_file()
 
-        edge_out, edge_index = prediction[0], prediction[1]
+        if self.edge_out_channels > 0:
+            edge_out, edge_index = prediction[0], prediction[1]
         if self.num_neutrinos > 0:
             nu_out = prediction[2]
         if self.hyperedge_out_channels is not None:
             hyperedge_out, hyperedge_index = prediction[3], prediction[4]
 
-        _num_events = len(edge_out)
-        for i in tqdm(range(_num_events),
+        # Event loop
+        for i in tqdm(range(len(batch)),
                       desc=f"Evaluating batch {batch_idx}", unit='event',leave=False):
             idx_save = batch_indices[i]
 
             # Edge reduction
-            if self.edge_reduction is not None:
-                reduced_edge, reduced_edge_index = edge_reduction(
-                    edge_out[i], edge_index[i], reduction=self.edge_reduction,
-                    return_reduced_indices=True)
-            else:
-                reduced_edge = edge_out[i]
-                reduced_edge_index = edge_index[i]
+            if self.edge_out_channels > 0:
+                if self.edge_reduction is not None:
+                    reduced_edge, reduced_edge_index = edge_reduction(
+                        edge_out[i], edge_index[i], reduction=self.edge_reduction,
+                        return_reduced_indices=True)
+                else:
+                    reduced_edge = edge_out[i]
+                    reduced_edge_index = edge_index[i]
+                self.edge_out[idx_save] = reduced_edge.transpose(0,1).detach().cpu().numpy()
+                self.edge_index[idx_save] = reduced_edge_index.detach().cpu().numpy()
 
-            # Write output
-            self.edge_out[idx_save] = reduced_edge.transpose(0,1).detach().cpu().numpy()
-            self.edge_index[idx_save] = reduced_edge_index.detach().cpu().numpy()
             if self.num_neutrinos > 0:
                 self.neutrino_out[idx_save] = nu_out[i].detach().cpu().numpy()
+
             if self.hyperedge_out_channels is not None:
                 self.hyperedge_out[idx_save] = hyperedge_out[i].transpose(0,1).detach().cpu().numpy()
                 self.hyperedge_index[idx_save] = hyperedge_index[i].detach().cpu().numpy()

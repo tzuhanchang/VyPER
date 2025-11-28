@@ -81,11 +81,13 @@ class MPNNs(nn.Module):
             nu_ctx_channels: int = 1,
             message_feats: int = 32,
             dropout: float = 0.01,
+            use_edge: bool = True,
             use_neutrino: bool = True
         ) -> None:
         super().__init__()
 
         self.num_layers = num_layers
+        self._use_edge = use_edge
         self._use_neutrino = use_neutrino
 
         for i in range(num_layers):
@@ -238,20 +240,24 @@ class MPNNs(nn.Module):
                     )
                 )
 
-        self.FinalEdgeLayer = Mlp(
-            d_in=message_feats,
-            d_out=edge_out_channels,
-            d_hidden=message_feats,
-            depth=1,
-            activation=nn.ReLU(),
-            dropout=dropout,
-            bias=True)
+        if self._use_edge:
+            self.FinalEdgeLayer = Mlp(
+                d_in=message_feats,
+                d_out=edge_out_channels,
+                d_hidden=message_feats,
+                depth=1,
+                activation=nn.ReLU(),
+                dropout=dropout,
+                bias=True)
+        else:
+            self.register_parameter('FinalEdgeLayer', None)
 
     def reset_parameters(self):
         r"""Resets all learnable parameters of the module."""
         for i in range(self.num_layers):
             for layer in getattr(self, 'MessagePassing' + str(i)).children():
                 layer.reset_parameters()
+        if self._use_edge:
             self.FinalEdgeLayer.reset_parameters()
 
     def forward(self, x, edge_index, edge_attr, u, batch,
@@ -274,6 +280,7 @@ class MPNNs(nn.Module):
                 )
 
         # Summarising
-        edge_attr = self.FinalEdgeLayer(edge_attr)
+        if self._use_edge:
+            edge_attr = self.FinalEdgeLayer(edge_attr)
         nu_ctx = torch.cat(nu_ctx, dim=1).float() if self._use_neutrino else None
         return [x, edge_attr, u, nu_ctx]

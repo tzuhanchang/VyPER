@@ -52,7 +52,7 @@ def Predict(cfg : DictConfig) -> None:
 
     writer = PredictionWriter(
         cfg['predicting']['save_as'],
-        edge_out_channels=len(cfg['target']['edge'])+1,
+        edge_out_channels=len(cfg['target']['edge'])+1 if 'edge' in cfg['target'].keys() else 0,
         num_neutrinos=int(cfg['target']['topology']['neutrinos']),
         hyperedge_out_channels=len(cfg['target']['hyperedge'])+1 if 'hyperedge' in cfg['target'].keys() else None,
         hyperedge_order=len(list(cfg['target']['hyperedge'].values())[0][0]) if 'hyperedge' in cfg['target'].keys() else None,

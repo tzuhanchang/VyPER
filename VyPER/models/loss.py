@@ -87,13 +87,16 @@ def CombinedLoss(edge_loss: Tensor, nu_loss: Optional[Tensor]=None, hyperedge_lo
 
     :rtype: :class:`Tensor`
     """
-    if hyperedge_loss is not None:
-        if nu_loss is not None:
-            l = eta * nu_loss + (1-eta) * (alpha * hyperedge_loss + ((1-alpha) * edge_loss))
-        else:
-            l = alpha * hyperedge_loss + ((1-alpha) * edge_loss)
-    else:
-        l = eta * nu_loss + (1-eta) * edge_loss if nu_loss is not None else edge_loss
+    if edge_loss is None:
+        edge_loss = 0
+    if hyperedge_loss is None:
+        hyperedge_loss = 0
+        alpha = 0
+    if nu_loss is None:
+        nu_loss = 0
+        eta = 0
+
+    l = eta * nu_loss + (1-eta) * (alpha * hyperedge_loss + (1-alpha) * edge_loss)
 
     if reduction == 'mean':
         rd = torch.mean

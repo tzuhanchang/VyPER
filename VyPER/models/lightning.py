@@ -1,9 +1,9 @@
 import torch
 
-from torch import nn, optim
+from torch import optim
 from lightning import LightningModule
 from torch_geometric.utils import scatter, unbatch, unbatch_edge_index
-from torchmetrics.classification import MultilabelAccuracy, BinaryAccuracy
+from torchmetrics.classification import MultilabelAccuracy
 from typing import Optional
 
 from .mpnn import MPNNs
@@ -26,6 +26,7 @@ class VyPER(LightningModule):
         attn_feats: int = 32,
         dropout: float = 0.01,
         num_message_layers: int = 3,
+        use_edge: bool = True,
         use_hyperedge: bool = True,
         use_diffusion: bool = True,
         hyperedge_feats: int = 32,
@@ -47,8 +48,8 @@ class VyPER(LightningModule):
 
         self.save_hyperparameters()
 
-        if use_diffusion:
-            assert nu_out_channels is not None
+        if self.hparams.use_diffusion:
+            assert self.hparams.nu_out_channels is not None
 
         self.MessagePassing = MPNNs(
             node_in_channels=self.hparams.node_in_channels,
@@ -61,6 +62,7 @@ class VyPER(LightningModule):
             message_feats=self.hparams.message_feats,
             nu_ctx_channels=self.hparams.message_feats,
             dropout=self.hparams.dropout,
+            use_edge=self.hparams.use_edge,
             use_neutrino=self.hparams.use_diffusion
         )
 
@@ -86,8 +88,9 @@ class VyPER(LightningModule):
             self.metric_hyperedge = MultilabelAccuracy(num_labels=self.hparams.hyperedge_out_channels,
                                                        average='none', ignore_index=0)
 
-        self.metric_edge = MultilabelAccuracy(num_labels=self.hparams.edge_out_channels,
-                                              average='none', ignore_index=0)
+        if self.hparams.use_edge:
+            self.metric_edge = MultilabelAccuracy(num_labels=self.hparams.edge_out_channels,
+                                                  average='none', ignore_index=0)
 
     def forward(self, x, edge_index, edge_attr, u, batch, x_fw_mask=None, edge_fw_mask=None,
                 hyperedge_index=None, hyperedge_index_batch=None,
@@ -150,10 +153,13 @@ class VyPER(LightningModule):
         )
 
         # Compute edge loss
-        edge_loss = EdgeLoss(out[0], train_batch.edge_attr_t, train_batch.edge_attr_batch,
-                             train_batch.topo_max_num_edges)
-        self.log('loss/train_edge_loss', edge_loss.mean(), batch_size=len(train_batch),
-                 on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
+        if self.hparams.use_edge:
+            edge_loss = EdgeLoss(out[0], train_batch.edge_attr_t, train_batch.edge_attr_batch,
+                                train_batch.topo_max_num_edges)
+            self.log('loss/train_edge_loss', edge_loss.mean(), batch_size=len(train_batch),
+                    on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
+        else:
+            edge_loss = None
 
         # Compute diffusion loss
         if self.hparams.use_diffusion:
@@ -200,15 +206,18 @@ class VyPER(LightningModule):
         )
 
         # Compute edge loss and accuracy
-        edge_loss = EdgeLoss(out[0], val_batch.edge_attr_t, val_batch.edge_attr_batch,
-                             val_batch.topo_max_num_edges)
-        self.log('loss/validation_edge_loss', edge_loss.mean(), batch_size=len(val_batch),
-                 on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
-        edge_accuracy = self.metric_edge(torch.nn.functional.softmax(out[0], dim=1),
-                                         val_batch.edge_attr_t.float())
-        for i in range(self.hparams.edge_out_channels):
-            self.log(f'accuracy/edge_channel_{i}', edge_accuracy[i], batch_size=len(val_batch), on_step=False, on_epoch=True,
-                     prog_bar=False, logger=True, sync_dist=True)
+        if self.hparams.use_edge:
+            edge_loss = EdgeLoss(out[0], val_batch.edge_attr_t, val_batch.edge_attr_batch,
+                                val_batch.topo_max_num_edges)
+            self.log('loss/validation_edge_loss', edge_loss.mean(), batch_size=len(val_batch),
+                    on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
+            edge_accuracy = self.metric_edge(torch.nn.functional.softmax(out[0], dim=1),
+                                            val_batch.edge_attr_t.float())
+            for i in range(self.hparams.edge_out_channels):
+                self.log(f'accuracy/edge_channel_{i}', edge_accuracy[i], batch_size=len(val_batch), on_step=False, on_epoch=True,
+                        prog_bar=False, logger=True, sync_dist=True)
+        else:
+            edge_loss = None
 
         # Compute diffusion loss
         if self.hparams.use_diffusion:
