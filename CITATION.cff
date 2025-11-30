@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+message: "If you use this software in your analysis, please cite it as below."
+authors:
+- family-names: "Zhang"
+  given-names: "Zihan"
+  orcid: "https://orcid.org/0000-0002-0415-7721"
+license: MIT
+url: "https://github.com/tzuhanchang/VyPER"
+preferred-citation:
+  type: article
+  title: "Reconstructing short-lived particles using hypergraph representation learning"
+  authors:
+  - family-names: "Birch-Sykes"
+    given-names: "Callum"
+  - family-names: "Le"
+    given-names: "Brian"
+  - family-names: "Peters"
+    given-names: "Yvonne"
+    orcid: "https://orcid.org/0000-0003-1702-7544"
+  - family-names: "Simpson"
+    given-names: "Ethan"
+    orcid: "https://orcid.org/0000-0002-9899-7413"
+  - family-names: "Zhang"
+    given-names: "Zihan"
+    orcid: "https://orcid.org/0000-0002-0415-7721"
+  journal: "Phys. Rev. D"
+  volume: 111
+  issue: 3
+  pages: 032004
+  numpages: 13
+  year: 2025
+  month: "Feb"
+  publisher: "American Physical Society"
+  doi: "10.1103/PhysRevD.111.032004"
+  url: "https://link.aps.org/doi/10.1103/PhysRevD.111.032004"
