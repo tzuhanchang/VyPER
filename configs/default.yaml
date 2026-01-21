@@ -7,7 +7,6 @@ datasets:
   predict_set:      null
   tune_set:         null
   event_filter:     null
-  cache_dir:        null
   force_reload:     false
   train_val_split:  0.9
   drop_last:        true
