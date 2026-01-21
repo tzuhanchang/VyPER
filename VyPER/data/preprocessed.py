@@ -62,7 +62,7 @@ class PreprocessingWrite(IterableDataset):
                         desc=f"Worker {worker_id if worker_info else 'main'}",
                         total=iter_end-iter_start,
                         position=worker_id if worker_info is not None else 0,
-                        dynamic_ncols=False, ncols=100, nrows=4, file=sys.stderr,
+                        dynamic_ncols=False, ncols=100, nrows=5, file=sys.stderr,
                         leave=True, unit='evt', miniters=100, ascii=True):
 
             G = self.master[idx]
