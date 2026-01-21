@@ -49,7 +49,6 @@ def objective(trial: optuna.trial.Trial) -> float:
         val_set = None,
         predict_set = None,
         event_filter = CONFIGS['datasets']['event_filter'],
-        cache_dir = CONFIGS['datasets']['cache_dir'],
         force_reload = False,
         batch_size = CONFIGS['training']['batch_size'],
         percent_train_samples = CONFIGS['datasets']['train_val_split'],
@@ -148,5 +147,10 @@ if __name__ == '__main__':
     # Required since PyTorch 2.6, see [#53](https://github.com/tzuhanchang/VyPER/pull/53).
     if version.parse(torch.__version__) >= version.parse("2.6"):
         torch.serialization.add_safe_globals([torch_geometric.data.data.DataEdgeAttr,torch_geometric.data.data.DataTensorAttr,torch_geometric.data.storage.GlobalStorage])
+
+    import tqdm
+    import multiprocessing
+    tqdm.tqdm.monitor_interval = 0
+    tqdm.tqdm.set_lock(multiprocessing.RLock())
 
     Tune()

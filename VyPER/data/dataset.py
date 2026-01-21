@@ -1,11 +1,8 @@
-import os
-import shutil
 import yaml
 import h5py
 import math
 import torch
 
-import os.path as osp
 import numpy as np
 import numpy.lib.recfunctions as rf
 
@@ -19,22 +16,10 @@ from .transform import TransformFeatures
 
 
 class VyPERDataset(Dataset):
-    def __init__(self, root: str, config: str, training: bool=True,
-                 cache_dir: str=None, force_reload: bool=False) -> None:
+    def __init__(self, root: str, config: str, training: bool=True) -> None:
         self.root = root
         self.config = config
         self._train_mode = training
-
-        if cache_dir is None:
-            self.cache = osp.join(".cache",osp.splitext(osp.basename(self.root))[0])
-        else:
-            self.cache = osp.join(cache_dir,osp.splitext(osp.basename(self.root))[0])
-        if not osp.exists(self.cache):
-            os.makedirs(self.cache)
-        else:
-            if force_reload:
-                shutil.rmtree(self.cache)
-                os.makedirs(self.cache)
 
         config = self._parse_config_file(self.config)
         self.node_input_names = list(config['input']['nodes'].keys())
@@ -414,13 +399,9 @@ class VyPERDataset(Dataset):
                         topo_num_neutrinos=torch.tensor([[self.topo_num_neutrinos]],dtype=torch.float32))
 
         data = self.transform(data)
-        torch.save(data, osp.join(self.cache, f'processed_{index}.pt'))
         return data
 
     def __getitem__(self, index) -> Data:
-        cached_data = os.path.join(self.cache, f'processed_{index}.pt')
-        if osp.exists(cached_data):
-            return torch.load(cached_data)
         return self.processing(index)
 
     def __len__(self):

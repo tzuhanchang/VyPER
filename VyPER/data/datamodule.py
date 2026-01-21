@@ -7,7 +7,7 @@ from torch.utils.data import Subset, random_split
 from torch_geometric.loader import DataLoader
 from typing import Optional
 
-from VyPER.data import VyPERDataset
+from VyPER.data import VyPEROnDiskDataset
 
 
 class VyPERDataModule(LightningDataModule):
@@ -18,7 +18,6 @@ class VyPERDataModule(LightningDataModule):
         val_set: Optional[str]=None,
         predict_set: Optional[str]=None,
         event_filter: Optional[str]=None,
-        cache_dir: Optional[str]=None,
         force_reload: bool=False,
         batch_size: int=128,
         percent_train_samples: float=0.9,
@@ -34,7 +33,6 @@ class VyPERDataModule(LightningDataModule):
         self.val_set = val_set
         self.predict_set = predict_set
         self.event_filter = event_filter
-        self.cache_dir = cache_dir
         self.force_reload = force_reload
         self.batch_size = batch_size
         self.percent_train_samples = percent_train_samples
@@ -67,8 +65,11 @@ class VyPERDataModule(LightningDataModule):
                 print("Creating validation set using "
                     +f"{round((1-self.percent_train_samples)*100,2)}% of the file.")
 
-                data = VyPERDataset(root=self.train_set, config=self.config, training=True,
-                                    cache_dir=self.cache_dir, force_reload=self.force_reload)
+                data = VyPEROnDiskDataset(root=self.train_set,
+                                          config=self.config, training=True,
+                                          force_reload=self.force_reload,
+                                          batch_size=self.batch_size,
+                                          num_workers=self.num_workers)
 
                 self._use_diffusion = data._use_diffusion
                 self._use_hyperedge = data._use_hyperedge
@@ -86,10 +87,18 @@ class VyPERDataModule(LightningDataModule):
                     [self.percent_train_samples, 1-self.percent_train_samples])
                 del data
             else:
-                self.train_data = VyPERDataset(root=self.train_set, config=self.config, training=True,
-                                               cache_dir=self.cache_dir, force_reload=self.force_reload)
-                self.val_data = VyPERDataset(root=self.val_set, config=self.config, training=True,
-                                             cache_dir=self.cache_dir, force_reload=self.force_reload)
+                self.train_data = VyPEROnDiskDataset(root=self.train_set,
+                                                     config=self.config,
+                                                     training=True,
+                                                     force_reload=self.force_reload,
+                                                     batch_size=self.batch_size,
+                                                     num_workers=self.num_workers)
+                self.val_data   = VyPEROnDiskDataset(root=self.val_set,
+                                                     config=self.config,
+                                                     training=True,
+                                                     force_reload=self.force_reload,
+                                                     batch_size=self.batch_size,
+                                                     num_workers=self.num_workers)
 
                 self._use_diffusion = self.train_data._use_diffusion
                 self._use_hyperedge = self.train_data._use_hyperedge
@@ -114,8 +123,12 @@ class VyPERDataModule(LightningDataModule):
                     )
 
         if self.predict_set is not None:
-            self.predict_data = VyPERDataset(root=self.predict_set, config=self.config, training=False,
-                                             cache_dir=self.cache_dir, force_reload=self.force_reload)
+            self.predict_data   = VyPEROnDiskDataset(root=self.predict_set,
+                                                     config=self.config,
+                                                     training=False,
+                                                     force_reload=self.force_reload,
+                                                     batch_size=self.batch_size,
+                                                     num_workers=self.num_workers)
 
             self._use_diffusion = self.predict_data._use_diffusion
             self._use_hyperedge = self.predict_data._use_hyperedge
@@ -139,7 +152,6 @@ class VyPERDataModule(LightningDataModule):
         table.add_column("Value", justify="left")
         table.add_row("Drop last batch", str(self.drop_last))
         table.add_row("Force reload", str(self.force_reload))
-        table.add_row("Cache directory", str(self.cache_dir))
         if self.train_data is not None:
             table.add_row("Training file path", str(self.train_set))
             table.add_row("Training samples", str(len(self.train_data)))
