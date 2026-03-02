@@ -42,7 +42,6 @@ def Train(cfg : DictConfig) -> None:
         val_set = cfg['datasets']['val_set'],
         predict_set = None,
         event_filter = cfg['datasets']['event_filter'],
-        cache_dir = cfg['datasets']['cache_dir'],
         force_reload = cfg['datasets']['force_reload'],
         batch_size = cfg['training']['batch_size'],
         percent_train_samples = cfg['datasets']['train_val_split'],
@@ -146,5 +145,10 @@ if __name__ == '__main__':
     # Required since PyTorch 2.6, see [#53](https://github.com/tzuhanchang/VyPER/pull/53).
     if version.parse(torch.__version__) >= version.parse("2.6"):
         torch.serialization.add_safe_globals([torch_geometric.data.data.DataEdgeAttr,torch_geometric.data.data.DataTensorAttr,torch_geometric.data.storage.GlobalStorage])
+
+    import tqdm
+    import multiprocessing
+    tqdm.tqdm.monitor_interval = 0
+    tqdm.tqdm.set_lock(multiprocessing.RLock())
 
     Train()
