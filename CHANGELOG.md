@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Fixed
+ - Fix `ckpt_loader` metric floating-point decimals ([#67](https://github.com/tzuhanchang/VyPER/pull/67))
 
 
 ## [0.2.3-alpha] - 2025-11-19
