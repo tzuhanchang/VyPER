@@ -68,7 +68,7 @@ def ckpt_loader(cfg):
         best_row  = metric_df.iloc[idx_best]
 
         # Build the filename again (to be safe)
-        best_fname = f"epoch={best_row['epoch']}-{target_metric}={best_row['value']}.ckpt"
+        best_fname = f"epoch={best_row['epoch']}-{target_metric}={best_row['value']:.3f}.ckpt"
         ckpt_file  = ckpt_dir / best_fname
 
         print(f"Loading checkpoint: {ckpt_file.name}")
