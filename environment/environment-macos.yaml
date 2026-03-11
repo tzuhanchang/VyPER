@@ -2,20 +2,18 @@ name: VyPER
 channels:
   - conda-forge
 dependencies:
-  - python=3.12.*
+  - python=3.13.*
   - pip
   - pip:
-    - torch==2.8.*
+    - torch==2.9.1
     - torch_geometric
-    - https://data.pyg.org/whl/torch-2.8.0%2Bcpu/torch_scatter-2.1.2-cp312-cp312-macosx_10_13_universal2.whl
-    - numpy==1.26.4
+    - https://data.pyg.org/whl/torch-2.9.0%2Bcpu/torch_scatter-2.1.2-cp313-cp313-macosx_10_13_universal2.whl
+    - numpy
     - pandas
     - lightning
     - tensorboard
     - jupyterlab
     - matplotlib
-    - uproot
-    - awkward
     - h5py
     - torch-hep==0.0.5
     - hydra-core
