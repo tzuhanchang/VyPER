@@ -25,20 +25,20 @@ class HyperedgeBlock(nn.Module):
         self.node_in_channels = node_in_channels
         self.message_feats = message_feats
 
-        self.hyperedge_constructor = Mlp(
+        self.HyperedgeConstructor = Mlp(
             d_in=node_in_channels+global_in_channels,
             d_out=message_feats,
             d_hidden=message_feats,
-            depth=4,
+            depth=1,
             activation=nn.ReLU(),
             dropout=dropout,
             bias=True
         )
-        self.final_hyperedge_layer = Mlp(
+        self.FinalHyperedgeLayer = Mlp(
             d_in=message_feats*2,
             d_out=node_out_channels,
             d_hidden=message_feats,
-            depth=4,
+            depth=1,
             activation=nn.ReLU(),
             dropout=dropout,
             bias=True
@@ -48,8 +48,8 @@ class HyperedgeBlock(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        self.hyperedge_constructor.reset_parameters()
-        self.final_hyperedge_layer.reset_parameters()
+        self.HyperedgeConstructor.reset_parameters()
+        self.FinalHyperedgeLayer.reset_parameters()
         nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
 
     def __hyperedge_finding__(self, x, hyperedge_index, r):
@@ -66,8 +66,8 @@ class HyperedgeBlock(nn.Module):
         return coefficient * relu(torch.mm(x_hyper, self.weight), inplace=True)
 
     def forward(self, x, u, batch, hyperedge_index, batch_hyper, r):
-        x_hyper = self.hyperedge_constructor(torch.cat([x, u[batch]], dim=1).float())
+        x_hyper = self.HyperedgeConstructor(torch.cat([x, u[batch]], dim=1).float())
         x_hyper = self.__hyperedge_finding__(x_hyper, hyperedge_index, r)
         x_hyper_hat = self.weighting(x_hyper, batch_hyper)
         out = torch.cat([x_hyper, x_hyper_hat], dim=1).float()
-        return self.final_hyperedge_layer(out), batch_hyper
+        return self.FinalHyperedgeLayer(out), batch_hyper
