@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Generalize the network for neutrino-only topologies ([#65](https://github.com/tzuhanchang/VyPER/pull/65))
 
 ### Changed
+ - Reduce hyperedge MLP depth ([#70](https://github.com/tzuhanchang/VyPER/pull/70))
  - Allow users to omit `training.save_ckpts` setting ([#69](https://github.com/tzuhanchang/VyPER/pull/69))
  - Upgrade dependencies: Python 3.13, PyTorch 2.9, CUDA 13.0 ([#68](https://github.com/tzuhanchang/VyPER/pull/68))
  - Change how graphs are processed and saved using `VyPEROnDiskDataset` ([#66](https://github.com/tzuhanchang/VyPER/pull/66))
