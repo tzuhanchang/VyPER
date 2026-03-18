@@ -8,15 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Removed
+
+### Fixed
+
+
+## [0.3.0-alpha] - 2026-03-16
+
+### Added
  - Generalize the network for neutrino-only topologies ([#65](https://github.com/tzuhanchang/VyPER/pull/65))
 
 ### Changed
+ - Reduce hyperedge MLP depth ([#70](https://github.com/tzuhanchang/VyPER/pull/70))
+ - Allow users to omit `training.save_ckpts` setting ([#69](https://github.com/tzuhanchang/VyPER/pull/69))
+ - Upgrade dependencies: Python 3.13, PyTorch 2.9, CUDA 13.0 ([#68](https://github.com/tzuhanchang/VyPER/pull/68))
  - Change how graphs are processed and saved using `VyPEROnDiskDataset` ([#66](https://github.com/tzuhanchang/VyPER/pull/66))
  - Streamlining message-passing framework ([#62](https://github.com/tzuhanchang/VyPER/pull/62))
 
 ### Removed
 
 ### Fixed
+ - Fix `ckpt_loader` metric floating-point decimals ([#67](https://github.com/tzuhanchang/VyPER/pull/67))
 
 
 ## [0.2.3-alpha] - 2025-11-19
@@ -108,6 +123,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Fix the missing `x_fw_mask` and `edge_fw_mask` ([#6](https://github.com/tzuhanchang/VyPER/pull/6))
  - Fix input data not being transformed/scaled ([#3](https://github.com/tzuhanchang/VyPER/pull/3))
 
+[0.3.0-alpha]: https://github.com/tzuhanchang/VyPER/compare/v0.2.3-alpha...v0.3.0-alpha
 [0.2.3-alpha]: https://github.com/tzuhanchang/VyPER/compare/v0.2.2-alpha...v0.2.3-alpha
 [0.2.2-alpha]: https://github.com/tzuhanchang/VyPER/compare/v0.2.1-alpha...v0.2.2-alpha
 [0.2.1-alpha]: https://github.com/tzuhanchang/VyPER/compare/v0.2.0-alpha...v0.2.1-alpha

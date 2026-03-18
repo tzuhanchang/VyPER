@@ -106,18 +106,19 @@ def Train(cfg : DictConfig) -> None:
         RichModelSummary(max_depth=2) if _RICH_AVAILABLE else ModelSummary(max_depth=2)
     ]
 
-    for monitor, mode in cfg['training']['save_ckpts'].items():
-        safe_monitor = monitor.replace('/', '_')
-        callbacks.append(
-            ModelCheckpoint(
-                filename="epoch={epoch}-"+safe_monitor+"={"+monitor+":.3f}",
-                monitor=monitor,
-                mode=mode,
-                save_top_k=1,
-                save_last=False,
-                auto_insert_metric_name=False,
+    if cfg['training']['save_ckpts'] is not None:
+        for monitor, mode in cfg['training']['save_ckpts'].items():
+            safe_monitor = monitor.replace('/', '_')
+            callbacks.append(
+                ModelCheckpoint(
+                    filename="epoch={epoch}-"+safe_monitor+"={"+monitor+":.3f}",
+                    monitor=monitor,
+                    mode=mode,
+                    save_top_k=1,
+                    save_last=False,
+                    auto_insert_metric_name=False,
+                )
             )
-        )
 
     trainer = pl.Trainer(
         accelerator = cfg['device']['accelerator'],
