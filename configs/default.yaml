@@ -60,6 +60,14 @@ device:
   num_devices:        1
   num_workers:        12
 
+onnx_export:
+  model_directory:    ${predicting.model_directory}
+  model_choice:       ${predicting.model_choice}
+  save_as:            VyPER.onnx
+  consistence_check:
+    run_check:  True
+    rtol:       1e-04
+    atol:       1e-08
 
 # -------------------------------------- #
 #     Hyperparameter Tuning Settings     #

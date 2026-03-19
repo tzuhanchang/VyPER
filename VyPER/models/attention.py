@@ -60,7 +60,7 @@ class DiTBlock(Module):
     def forward(self, x: Tensor, c: Tensor) -> Tensor:
         shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = self.adaLN_modulation(c).chunk(6, dim=2)
         mod = modulate(self.norm1(x), shift_msa, scale_msa)
-        attn, _ = self.attn(mod, mod, mod, need_weights=False)
+        attn, _ = self.attn(mod, mod, mod, need_weights=True)
         x = x + gate_msa * attn
         x = x + gate_mlp * self.mlp(modulate(self.norm2(x), shift_mlp, scale_mlp))
         return x

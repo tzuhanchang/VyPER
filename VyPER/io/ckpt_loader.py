@@ -7,13 +7,13 @@ import pandas as pd
 from pathlib import Path
 
 
-def ckpt_loader(cfg):
-    model_directory = Path(cfg['predicting']['model_directory'])
-    model_choice    = cfg['predicting']['model_choice'].split('-')
+def ckpt_loader(cfg, key: str='predicting'):
+    model_directory = Path(cfg[key]['model_directory'])
+    model_choice    = cfg[key]['model_choice'].split('-')
 
     if len(model_choice) != 2:
         warnings.warn(
-            f"Invalid `model_choice`: {cfg['predicting']['model_choice']}, "
+            f"Invalid `model_choice`: {cfg[key]['model_choice']}, "
             "use the last checkpoint instead.", UserWarning)
         ckpt_file = model_directory / 'checkpoints' / 'last.ckpt'
     else:
