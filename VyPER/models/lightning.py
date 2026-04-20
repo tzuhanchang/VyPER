@@ -202,7 +202,7 @@ class VyPER(LightningModule):
             hyperedge_index_batch=val_batch.hyperedge_index_batch if self.hparams.use_hyperedge else None,
             neutrino_t=val_batch.neutrino_t if self.hparams.use_diffusion else None,
             train_mode=True,
-            sampling=True
+            sampling=True if batch_idx==final_val_batch_idx else False
         )
 
         # Compute edge loss and accuracy
@@ -222,7 +222,10 @@ class VyPER(LightningModule):
         # Compute diffusion loss
         if self.hparams.use_diffusion:
             nu_out, nu_batch = out[1], out[2]
-            nu_loss, nu_out = nu_out
+            if batch_idx == final_val_batch_idx:
+                nu_loss, nu_out = nu_out
+            else:
+                nu_loss = nu_out
             nu_loss = DiffusionLoss(nu_loss, nu_batch, reduction='sum')
             self.log('loss/validation_diffusion_loss', nu_loss.mean(), batch_size=len(val_batch),
                      on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
@@ -251,7 +254,7 @@ class VyPER(LightningModule):
                  prog_bar=True, logger=True, sync_dist=True)
 
         # Log histograms @ final validation step
-        if self.hparams.use_diffusion:
+        if batch_idx == final_val_batch_idx and self.hparams.use_diffusion:
             p = get_neutrino_p4(nu_out,
                                 self.trainer.datamodule.neutrino_momentum_func,
                                 self.trainer.datamodule.neutrino_4vector_func,
