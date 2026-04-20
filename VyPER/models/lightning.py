@@ -79,9 +79,9 @@ class VyPER(LightningModule):
 
         if self.hparams.use_hyperedge:
             self.Hyperedge = HyperedgeBlock(
-                node_in_channels=self.hparams.message_feats,
+                node_in_channels=self.hparams.message_feats*self.hparams.num_message_layers,
                 node_out_channels=self.hparams.hyperedge_out_channels,
-                global_in_channels=self.hparams.message_feats,
+                global_in_channels=self.hparams.message_feats*self.hparams.num_message_layers,
                 message_feats=self.hparams.hyperedge_feats,
                 dropout=self.hparams.dropout
             )
