@@ -242,10 +242,10 @@ class MPNNs(nn.Module):
 
         if self._use_edge:
             self.FinalEdgeLayer = Mlp(
-                d_in=message_feats,
+                d_in=self.num_layers*message_feats,
                 d_out=edge_out_channels,
                 d_hidden=message_feats,
-                depth=1,
+                depth=2,
                 activation=nn.ReLU(),
                 dropout=dropout,
                 bias=True)
@@ -266,7 +266,7 @@ class MPNNs(nn.Module):
         if self._use_neutrino:
             assert lep_node is not None and lep_forward_edge is not None
 
-        nu_ctx = []
+        nu_ctx = []; edge_ctx = []; x_ctx = []; u_ctx = [];
         # Message Passing Step
         for i in range(self.num_layers):
             if self._use_neutrino:
@@ -278,9 +278,12 @@ class MPNNs(nn.Module):
                 x, edge_attr, u = getattr(self, 'MessagePassing' + str(i))(
                     x, batch, edge_attr, edge_index, u
                 )
+            edge_ctx.append(edge_attr)
+            x_ctx.append(x)
+            u_ctx.append(u)
 
         # Summarising
         if self._use_edge:
-            edge_attr = self.FinalEdgeLayer(edge_attr)
+            edge_attr = self.FinalEdgeLayer(torch.cat(edge_ctx, dim=1))
         nu_ctx = torch.cat(nu_ctx, dim=1).float() if self._use_neutrino else None
-        return [x, edge_attr, u, nu_ctx]
+        return [torch.cat(x_ctx, dim=1), edge_attr, torch.cat(u_ctx, dim=1), nu_ctx]
