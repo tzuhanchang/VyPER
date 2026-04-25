@@ -108,8 +108,7 @@ def group_batch(
         padding_fill = torch.full(input.shape, fill,
                                   device=device).index_select(dim, pad_index)
         padded = group_cat([input, padding_fill], [index, pad_index], dim)
-        out = padded.reshape(*padded.shape[:dim], -1, pad_size, *padded.shape[dim+1:])
-        return out.transpose(dim, -2)
+        return padded.reshape(*padded.shape[:dim], -1, pad_size, *padded.shape[dim+1:])
 
     out = batching(src, pad_value)
     return (out, batching(torch.full(src.shape, True, device=device),
