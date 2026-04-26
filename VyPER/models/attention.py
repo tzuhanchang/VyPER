@@ -195,5 +195,5 @@ class Denoiser(Module):
 
         # Unbatch the output
         x = self.out(x, c)
-        x = x.transpose(0,1)[mask.to(torch.bool)[:,:,self.d_x]].view(-1,self.d_x)
+        x = x.transpose(0,1)[mask.bool()]
         return x
