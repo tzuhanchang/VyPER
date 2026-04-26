@@ -14,8 +14,9 @@ def test_group_batch():
 
     out, mask = group_batch(src, index, dim=0, pad_size=3,
                             pad_value=float("-inf"), return_mask=True)
+    mask = mask.bool()
     assert torch.equal(out, expected)
-    assert torch.equal(out[mask].reshape(src.size()), src)
+    assert torch.equal(out[mask], src)
 
 
 def test_softmax():

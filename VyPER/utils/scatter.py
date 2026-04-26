@@ -87,15 +87,9 @@ def group_batch(
                  [[0.1971, 0.2903],
                   [0.4086, 0.7221],
                   [  -inf,   -inf]]])
-        tensor([[[ True,  True],
-                 [ True,  True],
-                 [False, False]],
-                [[ True,  True],
-                 [False, False],
-                 [False, False]],
-                [[ True,  True],
-                 [ True,  True],
-                 [False, False]]]))
+        tensor([[ True,  True, False],
+                [ True, False, False],
+                [ True,  True, False]]))
     """
     device = src.device
     d = torch.unique(index, return_counts=True)[1]
@@ -110,9 +104,12 @@ def group_batch(
         padded = group_cat([input, padding_fill], [index, pad_index], dim)
         return padded.reshape(*padded.shape[:dim], -1, pad_size, *padded.shape[dim+1:])
 
-    out = batching(src, pad_value)
-    return (out, batching(torch.full(src.shape, True, device=device),
-                          False)) if return_mask else out
+    out  = batching(src, pad_value)
+    mask = batching(torch.ones_like(src, device=device),
+                    0.)[:,:,0]  # Returned mask has a dtype of torch.float32
+                                # becaused of current onnx or torch version.
+                                # See https://github.com/tzuhanchang/VyPER/pull/73
+    return (out, mask) if return_mask else out
 
 
 def softmax(src: Tensor, index: Tensor, dim_size: int, dim: int = 0) -> Tensor:
