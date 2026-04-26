@@ -21,4 +21,4 @@ jobs:
       - name: Run tests
         run: |
           pytest test/ -v
-        shell: bash
+        shell: micromamba-shell {0}

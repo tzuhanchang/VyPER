@@ -19,6 +19,7 @@ runs:
       uses: mamba-org/setup-micromamba@v2
       with:
         environment-file: environment/environment-linux.yaml
+        environment-name: VyPER
         cache-downloads: false
         cache-environment: true
         init-shell: bash
@@ -26,4 +27,4 @@ runs:
     - name: Install pytest
       run: |
         pip install pytest
-      shell: bash
+      shell: micromamba-shell {0}
