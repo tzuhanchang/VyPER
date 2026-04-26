@@ -64,7 +64,7 @@ def ONNX(cfg : DictConfig) -> None:
         input_samples.update({'hyperedge_index': None, 'hyperedge_index_batch': None})
         dynamic_shapes.update({'hyperedge_index': {1: "n_hyperedges"}, 'hyperedge_index_batch': {0: "n_hyperedges"}})
         output_names.append('hyperedge_out')
-        output_names.append('hyperedge_batch')
+        output_names.append('hyperedge_index_batch')
 
     datamodule.setup("fit")
     for data in datamodule.predict_dataloader():
@@ -91,7 +91,8 @@ def ONNX(cfg : DictConfig) -> None:
                           f=cfg['onnx_export']['save_as'],
                           dynamic_shapes=dynamic_shapes,
                           dynamo=True,
-                          opset_version=18,
+                          opset_version=cfg['onnx_export']['opset_version'],
+                          optimize=False,
                           export_params=True)
 
     print(f"ONNX export successful! ONNX model has been saved to '{cfg['onnx_export']['save_as']}'.")
@@ -111,9 +112,11 @@ def ONNX(cfg : DictConfig) -> None:
                 if idx == 1:    # Fixed neturino output loc in forward function
                     print("Skipping consistence check for neutrino output due to the randomness of diffusion.")
                     continue
+                print(f"Checking output '{idx}'...")
                 assert len(tensor) == len(ort[idx])
                 torch.testing.assert_close(tensor, torch.tensor(ort[idx]), rtol=rtol, atol=atol,
                                            msg=f"Consistence check failed on output {idx} with the given tolerances.")
+                print("PASSED!")
 
         print(f"ONNX consistence check successful!")
 
