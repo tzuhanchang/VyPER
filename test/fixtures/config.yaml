@@ -1,6 +1,3 @@
-# -------------------------------------- #
-#             Common Settings            #
-# -------------------------------------- #
 datasets:
   train_set:        null
   val_set:          null
@@ -53,14 +50,6 @@ device:
   num_devices:        1
   num_workers:        1
 
-onnx_export:
-  model_directory:    ${predicting.model_directory}
-  model_choice:       ${predicting.model_choice}
-  save_as:            VyPER.onnx
-  consistence_check:
-    run_check:  True
-    rtol:       1e-04
-    atol:       1e-08
 
 input:
   nodes:
