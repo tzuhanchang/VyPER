@@ -9,7 +9,7 @@ on:
     - cron: "0 6 * * *"
 
 jobs:
-  test:
+  pytest:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
