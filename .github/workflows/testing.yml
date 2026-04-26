@@ -12,7 +12,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Run tests
       - uses: ./.github/actions/setup
-      - run: |
+
+      - name: Run tests
+        run: |
           pytest test/ -v
