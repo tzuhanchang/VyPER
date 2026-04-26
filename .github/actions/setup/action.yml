@@ -4,21 +4,11 @@ description: Setup environment
 runs:
   using: composite
   steps:
-    - name: Set up Conda for Python 3.13
-      uses: conda-incubator/setup-miniconda@v4
+    - name: Setup mamba
+      uses: mamba-org/setup-micromamba@v2
       with:
-        python-version: 3.13
-        auto-update-conda: true
-
-    - name: Add conda to system path
-      run: |
-        # $CONDA is an environment variable pointing to the root of the miniconda directory
-        echo $CONDA/bin >> $GITHUB_PATH
-      shell: bash
-
-    - name: Install dependencies
-      continue-on-error: true
-      run: |
-        conda env update --file environment/environment-linux.yaml --name base
-        pip install pytest
-      shell: bash
+        environment-file: environment/environment-linux.yaml
+        cache-downloads: false
+        cache-environment: true
+        init-shell: bash
+        post-cleanup: 'all'
