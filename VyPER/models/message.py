@@ -236,7 +236,7 @@ class NeutrinoModel(Module):
         nu_batch = torch.unique(batch)
         torch._check(u.shape[0] == nu_batch.shape[0])
         nu_batch = nu_batch.repeat_interleave(num_neutrinos)
-        # nu_batch = torch.unique(batch).repeat_interleave(num_neutrinos)
+
         _, dest = torch.unique(dest, return_inverse=True)
         ctx = torch.cat([x[mask_n],
                          scatter(ctx, dest, dim=0, dim_size=(num_neutrinos.sum(0)).item(), reduce='sum'),
@@ -256,6 +256,6 @@ class NeutrinoModel(Module):
         # Backward message passing
         backward_shift, backward_scale = (torch.zeros_like(x, device=x.device, dtype=x.dtype),
                                           torch.zeros_like(x, device=x.device, dtype=x.dtype))
-        backward_shift.index_copy(0, mask_n.nonzero(as_tuple=False).squeeze(1), backward_pass)
-        backward_scale.index_copy(0, mask_n.nonzero(as_tuple=False).squeeze(1), scale_f)
+        backward_shift.index_copy_(0, mask_n.nonzero().squeeze(1), backward_pass)
+        backward_scale.index_copy_(0, mask_n.nonzero().squeeze(1), scale_f)
         return ctx_out, (x * (1 + backward_scale) + backward_shift)
