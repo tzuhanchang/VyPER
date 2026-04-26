@@ -5,7 +5,6 @@ from pathlib import Path
 from VyPER.data import VyPERDataset
 
 
-
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 
 @pytest.fixture

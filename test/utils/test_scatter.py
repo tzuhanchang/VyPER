@@ -1,6 +1,26 @@
 import torch
 
 
+def test_group_cat():
+    from VyPER.utils.scatter import group_cat
+
+    x1 = torch.randn(4, 4)
+    x2 = torch.randn(2, 4)
+    index1 = torch.tensor([0, 0, 1, 2])
+    index2 = torch.tensor([0, 2])
+
+    expected = torch.cat([x1[:2], x2[:1], x1[2:4], x2[1:]], dim=0)
+
+    out, index = group_cat(
+        [x1, x2],
+        [index1, index2],
+        dim=0,
+        return_index=True,
+    )
+    assert torch.equal(out, expected)
+    assert index.tolist() == [0, 0, 0, 1, 2, 2]
+
+
 def test_group_batch():
     from VyPER.utils import group_batch
 
