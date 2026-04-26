@@ -1,0 +1,15 @@
+[project]
+name = "VyPER"
+version = "0.3.0-alpha"
+
+[tool.setuptools.packages.find]
+where = ["VyPER"]
+
+[pytest]
+pythonpath = ["."]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::UserWarning:torch_geometric",
+    "ignore::DeprecationWarning:torch_geometric",
+]

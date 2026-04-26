@@ -1,0 +1,30 @@
+name: Setup
+description: Setup environment
+
+runs:
+  using: composite
+  steps:
+    - name: Free disk space
+      uses: jlumbroso/free-disk-space@main
+      with:
+        tool-cache: true
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: true
+        docker-images: true
+        swap-storage: true
+
+    - name: Setup mamba
+      uses: mamba-org/setup-micromamba@v2
+      with:
+        environment-file: environment/environment-linux.yaml
+        environment-name: VyPER
+        cache-downloads: false
+        cache-environment: true
+        init-shell: bash
+
+    - name: Install pytest
+      run: |
+        pip install pytest
+      shell: micromamba-shell {0}

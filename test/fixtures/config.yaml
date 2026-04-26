@@ -1,0 +1,154 @@
+datasets:
+  train_set:        null
+  val_set:          null
+  predict_set:      null
+  tune_set:         null
+  event_filter:     null
+  force_reload:     false
+  train_val_split:  0.5
+  drop_last:        false
+
+network:
+  message_feats:      32
+  attn_feats:         32
+  num_attn_heads:     4
+  num_message_layers: 3
+  num_dit_blocks:     2
+  hyperedge_feats:    32
+  hyperedge_order:    3
+
+training:
+  learning_rate:      0.0003
+  weight_decay:       0.01
+  momentum:           0.0
+  optimizer:          AdamW
+  loss_reduction:     mean
+  alpha:              0.8
+  eta:                0.8
+  dropout:            0.01
+  gradient_clip:      1.
+  epochs:             1
+  batch_size:         1
+  num_sampling_steps: 5
+  grad_accum_batches: 1
+  patience:           10
+  save_directory:     logs
+  continue_from_ckpt: null
+  lr_scheduler:       null
+  save_ckpts:         null
+
+predicting:
+  model_directory:    ${training.save_directory}/version_0
+  model_choice:       min-loss
+  batch_size:         1
+  num_sampling_steps: 5
+  edge_reduction:     mean
+  save_as:            ${training.save_directory}/version_0/output.h5
+
+device:
+  accelerator:        cpu
+  num_devices:        1
+  num_workers:        1
+
+
+input:
+  nodes:
+    JET: 0
+    ELECTRON: 1
+    MUON: 2
+
+  node_features:
+    - e
+    - eta
+    - phi
+    - pt
+    - btag
+    - charge
+
+  node_4vector_definition:
+    functional: MomentumTensor.EEtaPhiPt
+    ordered_inputs:
+      - e
+      - eta
+      - phi
+      - pt
+
+  node_transforms:
+    - x
+    - x
+    - x
+    - x
+    - x
+    - x
+
+  edge_features:
+    - (e1.eta - e2.eta)
+    - torch.arctan2(torch.sin(e1.phi-e2.phi),torch.cos(e1.phi-e2.phi))
+    - torch.sqrt((e1.eta - e2.eta)*(e1.eta - e2.eta) + torch.arctan2(torch.sin(e1.phi-e2.phi),torch.cos(e1.phi-e2.phi))*torch.arctan2(torch.sin(e1.phi-e2.phi),torch.cos(e1.phi-e2.phi)))
+
+  edge_transforms:
+    - x
+    - x
+    - x
+
+  global_features:
+    - njet
+    - nbTagged
+    - nelectron
+    - nmuon
+    - met_met
+    - met_phi
+    - met_cosphi
+    - met_sinphi
+
+  global_transforms:
+    - x
+    - x
+    - x
+    - x
+    - x
+    - x
+    - x
+    - x
+
+target:
+  topology:
+    edge: 4
+    hyperedge: 1
+    neutrinos: 2
+
+  edge:
+    lt:
+      - ['0-1','1-2']
+      - ['0-1','2-2']
+    hw:
+      - ['0-5','0-6']
+
+  hyperedge:
+    ht:
+      - ['0-4','0-5','0-6']
+
+  neutrinos:
+    node_label: 3
+    associated_nodes:
+      - 1
+      - 2
+    features:
+      - px
+      - py
+      - pz
+    transforms:
+      - x
+      - x
+      - x
+    reverse_transforms:
+      - x
+      - x
+      - x
+    4vector_definition:
+      functional: MomentumTensor
+      ordered_inputs:
+        - torch.sqrt((px*px)+(py*py)+(pz*pz))
+        - px
+        - py
+        - pz
