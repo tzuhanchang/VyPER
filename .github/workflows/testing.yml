@@ -22,3 +22,27 @@ jobs:
         run: |
           pytest test/ -v
         shell: micromamba-shell {0}
+
+  workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+
+      - name: Prepare inputs
+        run: |
+          cp test/fixtures/config.yaml configs/testing.yaml
+        shell: micromamba-shell {0}
+
+      - name: Run training
+        run: |
+          python -m VyPER.train --config-name=testing datasets.train_set=test/fixtures/test.h5
+        shell: micromamba-shell {0}
+
+      - name: Run predicting
+        run: |
+          python -m VyPER.predict --config-name=testing datasets.predict_set=test/fixtures/test.h5
+        shell: micromamba-shell {0}
