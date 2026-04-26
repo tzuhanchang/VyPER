@@ -5,14 +5,13 @@ on:
     branches:
       - main
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
   schedule:
     - cron: "0 6 * * *"
 
 jobs:
   test:
-    uses: ./.github/workflows/setup.yml
     steps:
       - name: Run tests
-        run: |
+      - uses: ./.github/actions/setup
+      - run: |
           pytest test/ -v
