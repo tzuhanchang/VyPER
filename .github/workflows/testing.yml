@@ -1,0 +1,51 @@
+name: Testing
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    - cron: "0 6 * * *"
+
+jobs:
+  VyPER-workflow:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+        include:
+          - os: ubuntu-latest
+            python-version: '3.13'
+            env-file: 'environment/environment-linux.yaml'
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Conda for Python ${{ matrix.python-version }}
+        uses: conda-incubator/setup-miniconda@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          auto-update-conda: true
+
+      - name: Add conda to system path
+        run: |
+          # $CONDA is an environment variable pointing to the root of the miniconda directory
+          echo $CONDA/bin >> $GITHUB_PATH
+
+      - name: Install dependencies
+        continue-on-error: true
+        run: |
+          conda env update --file ${{ matrix.env-file }} --name base
+          pip install pytest
+
+      - name: Run tests
+        run: |
+          pytest test/ -v
