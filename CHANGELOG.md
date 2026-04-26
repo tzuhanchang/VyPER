@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+ - Implement `onnx` export ([#73](https://github.com/tzuhanchang/VyPER/pull/73))
  - Add a GitHub action for code testing ([#76](https://github.com/tzuhanchang/VyPER/pull/76))
 
 ### Changed
