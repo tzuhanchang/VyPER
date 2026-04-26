@@ -4,6 +4,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
 
   changelog:
@@ -13,4 +17,5 @@ jobs:
       - name: Enforce changelog entry
         uses: dangoslen/changelog-enforcer@v3
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           skipLabels: 'ignore-changelog'
