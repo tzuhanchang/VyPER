@@ -5,12 +5,15 @@ import torch
 import omegaconf
 import typing
 import torch_geometric
+import onnx
 import onnxruntime
+import onnxslim
 
 from omegaconf import DictConfig, OmegaConf
 from lightning_utilities.core.imports import RequirementCache
 from hydra.core.hydra_config import HydraConfig
 from packaging import version
+from pathlib import Path
 
 from VyPER.io import ckpt_loader
 from VyPER.data import VyPERDataModule
@@ -85,6 +88,7 @@ def ONNX(cfg : DictConfig) -> None:
 
     model = model.eval()
     with torch.no_grad():
+        # Onnx export
         torch.onnx.export(model, tuple(input_samples.values()),
                           input_names=list(input_samples.keys()),
                           output_names=output_names,
@@ -97,13 +101,32 @@ def ONNX(cfg : DictConfig) -> None:
 
     print(f"ONNX export successful! ONNX model has been saved to '{cfg['onnx_export']['save_as']}'.")
 
+    # Runing OnnxSlim
+    print("Optimizing ONNX model for inference using OnnxSlim...")
+    onnx_model = onnx.load(cfg['onnx_export']['save_as'])
+    slimmed_model = onnxslim.slim(onnx_model)
+    if slimmed_model:
+        optimized_onnx = Path(cfg['onnx_export']['save_as'])
+        optimized_onnx.rename(optimized_onnx.parent / 
+                             (optimized_onnx.stem + '-optimized' + optimized_onnx.suffix))
+        onnx.save(slimmed_model, optimized_onnx)
+        print("Optimizing ONNX model for inference using OnnxSlim...", "✅")
+        print(f"Optimized model: '{optimized_onnx}'.")
+    else:
+        optimized_onnx = None
+        print("Optimizing ONNX model for inference using OnnxSlim...", "❌")
+
+    # Consistence check
     if cfg['onnx_export']['consistence_check']['run_check']:
         rtol = cfg['onnx_export']['consistence_check']['rtol']
         atol = cfg['onnx_export']['consistence_check']['atol']
         print(f"Running consistence check, comparing `pytorch` outputs with `onnxruntime` outputs with an relative tolerance of {rtol} and an absolute tolerance of {atol}.")
         pt = model.forward(**input_samples)
 
-        ort_session = onnxruntime.InferenceSession(cfg['onnx_export']['save_as'], providers=["CPUExecutionProvider"])
+        if optimized_onnx is not None:
+            ort_session = onnxruntime.InferenceSession(optimized_onnx, providers=["CPUExecutionProvider"])
+        else:
+            ort_session = onnxruntime.InferenceSession(cfg['onnx_export']['save_as'], providers=["CPUExecutionProvider"])
         onnx_inputs = {key: value.numpy(force=True) for key, value in input_samples.items()}
         ort = ort_session.run(None, onnx_inputs)
 
@@ -116,7 +139,7 @@ def ONNX(cfg : DictConfig) -> None:
                 assert len(tensor) == len(ort[idx])
                 torch.testing.assert_close(tensor, torch.tensor(ort[idx]), rtol=rtol, atol=atol,
                                            msg=f"Consistence check failed on output {idx} with the given tolerances.")
-                print("PASSED!")
+                print(f"Checking output '{idx}'...", "✅")
 
         print(f"ONNX consistence check successful!")
 
