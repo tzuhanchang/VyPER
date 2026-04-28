@@ -2,6 +2,7 @@ name: Build Container
 
 on:
   pull_request:
+    types: [labeled, opened, synchronize, reopened]
   push:
     branches:
       - main
@@ -12,13 +13,17 @@ permissions:
 
 jobs:
   build-container:
-    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'update-environment')
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        platform:
-          - linux/amd64
-          - linux/arm64
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+        include:
+          - os: ubuntu-latest
+            platform: linux/amd64
+          - os: ubuntu-24.04-arm
+            platform: linux/arm64
 
     steps:
       - name: Free disk space
@@ -50,5 +55,14 @@ jobs:
         with:
           context: ./environment
           push: true
-          platforms: ${{ matrix.env-platforms }}
+          platforms: ${{ matrix.platform }}
           tags: ghcr.io/${{ github.repository_owner }}/vyper:latest
+
+      - name: Delete older container versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: 'vyper'
+          package-type: 'container'
+          min-versions-to-keep: 2
+          delete-only-untagged-versions: true
+          token: ${{ secrets.GITHUB_TOKEN }}
