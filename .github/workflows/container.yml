@@ -51,12 +51,15 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7.1.0
         with:
           context: ./environment
           push: true
           platforms: ${{ matrix.platform }}
           tags: ghcr.io/${{ github.repository_owner }}/vyper:latest
+          provenance: false
+          sbom: false
+          outputs: type=image,name=target
 
       - name: Delete older container versions
         uses: actions/delete-package-versions@v5
