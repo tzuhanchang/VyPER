@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   build-container:
-    if: contains(github.event.label.name, 'docker-build')
+    if: contains(github.event.label.name, 'update-environment')
     runs-on: ubuntu-latest
 
     steps:
