@@ -2,6 +2,7 @@ name: Build Container
 
 on:
   pull_request:
+    types: [labeled]
   push:
     branches:
       - main
