@@ -1,4 +1,4 @@
-FROM nvidia/cuda:13.0.3-cudnn-runtime-ubuntu24.04
+FROM --platform=$TARGETPLATFORM nvidia/cuda:13.0.3-cudnn-runtime-ubuntu24.04
 
 ARG TARGETOS
 ARG TARGETARCH
