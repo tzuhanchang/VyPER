@@ -1,5 +1,9 @@
 FROM nvidia/cuda:13.0.3-cudnn-runtime-ubuntu24.04
 
+LABEL org.opencontainers.image.source=https://github.com/tzuhanchang/VyPER
+LABEL org.opencontainers.image.description="VyPER Environment Image"
+LABEL org.opencontainers.image.licenses=MIT
+
 ARG TARGETOS
 ARG TARGETARCH
 
