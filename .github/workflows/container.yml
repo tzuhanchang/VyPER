@@ -7,6 +7,9 @@ on:
     branches:
       - main
 
+env:
+  IMAGE_TAG: torch-2.9.1-cu13.0
+
 permissions:
   contents: read
   packages: write
@@ -58,7 +61,7 @@ jobs:
           context: ./environment
           platforms: ${{ matrix.platforms }}
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/vyper:torch-2.9.1-cu13.0-${{ matrix.tag-suffix }}
+          tags: ghcr.io/${{ github.repository_owner }}/vyper:${{ env.IMAGE_TAG }}-${{ matrix.tag-suffix }}
           provenance: false
           sbom: false
 
@@ -86,6 +89,24 @@ jobs:
         run: |
           docker buildx imagetools create \
             --annotation "index:org.opencontainers.image.description=VyPER Environment Image" \
-            --tag ghcr.io/${{ github.repository_owner }}/vyper:torch-2.9.1-cu13.0 \
-            ghcr.io/${{ github.repository_owner }}/vyper:torch-2.9.1-cu13.0-amd64 \
-            ghcr.io/${{ github.repository_owner }}/vyper:torch-2.9.1-cu13.0-arm64
+            --tag ghcr.io/${{ github.repository_owner }}/vyper:${{ env.IMAGE_TAG }} \
+            ghcr.io/${{ github.repository_owner }}/vyper:${{ env.IMAGE_TAG }}-amd64 \
+            ghcr.io/${{ github.repository_owner }}/vyper:${{ env.IMAGE_TAG }}-arm64
+
+      - name: Delete arch-specific tags
+        run: |
+          for TAG in "${{ env.IMAGE_TAG }}-amd64" "${{ env.IMAGE_TAG }}-arm64"; do
+            DIGEST=$(gh api \
+              -H "Accept: application/vnd.github+json" \
+              /orgs/${{ github.repository_owner }}/packages/container/vyper/versions \
+              --jq ".[] | select(.metadata.container.tags[] == \"$TAG\") | .id")
+
+            if [ -n "$DIGEST" ]; then
+              gh api \
+                -X DELETE \
+                -H "Accept: application/vnd.github+json" \
+                /orgs/${{ github.repository_owner }}/packages/container/vyper/versions/$DIGEST
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
