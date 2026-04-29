@@ -54,7 +54,6 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-           ...
           annotations: |
             org.opencontainers.image.description=${{ env.IMAGE_DESCRIPTION }}
         env:
