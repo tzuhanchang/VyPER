@@ -59,7 +59,7 @@ jobs:
           platforms: ${{ matrix.platforms }}
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/vyper:torch-2.9.1-cu13.0-${{ matrix.tag-suffix }}
-          outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=VyPER Environment Image
+          annotations: index:org.opencontainers.image.description=VyPER Environment Image
 
       - name: Delete older container versions
         uses: actions/delete-package-versions@v5
@@ -68,4 +68,33 @@ jobs:
           package-type: 'container'
           min-versions-to-keep: 2
           delete-only-untagged-versions: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  merge-manifest:
+    needs: build-container
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge into multi-arch manifest
+        run: |
+          docker buildx imagetools create \
+            --annotation "index:org.opencontainers.image.description=VyPER Environment Image" \
+            --tag ghcr.io/${{ github.repository_owner }}/vyper:torch-2.9.1-cu13.0 \
+            ghcr.io/${{ github.repository_owner }}/vyper:torch-2.9.1-cu13.0-amd64 \
+            ghcr.io/${{ github.repository_owner }}/vyper:torch-2.9.1-cu13.0-arm64
+
+      - name: Delete arch-specific tags
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: 'vyper'
+          package-type: 'container'
+          min-versions-to-keep: 0
+          ignore-versions: '^torch-2\.9\.1-cu13\.0$'
+          delete-only-pre-release-versions: false
           token: ${{ secrets.GITHUB_TOKEN }}
