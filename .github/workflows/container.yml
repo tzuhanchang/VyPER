@@ -89,13 +89,3 @@ jobs:
             --tag ghcr.io/${{ github.repository_owner }}/vyper:torch-2.9.1-cu13.0 \
             ghcr.io/${{ github.repository_owner }}/vyper:torch-2.9.1-cu13.0-amd64 \
             ghcr.io/${{ github.repository_owner }}/vyper:torch-2.9.1-cu13.0-arm64
-
-      - name: Delete arch-specific tags
-        uses: actions/delete-package-versions@v5
-        with:
-          package-name: 'vyper'
-          package-type: 'container'
-          min-versions-to-keep: 0
-          ignore-versions: '^torch-2\.9\.1-cu13\.0$'
-          delete-only-pre-release-versions: false
-          token: ${{ secrets.GITHUB_TOKEN }}
