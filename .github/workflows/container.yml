@@ -98,14 +98,14 @@ jobs:
           for TAG in "${{ env.IMAGE_TAG }}-amd64" "${{ env.IMAGE_TAG }}-arm64"; do
             DIGEST=$(gh api \
               -H "Accept: application/vnd.github+json" \
-              /orgs/${{ github.repository_owner }}/packages/container/vyper/versions \
+              /users/${{ github.repository_owner }}/packages/container/vyper/versions \
               --jq ".[] | select(.metadata.container.tags[] == \"$TAG\") | .id")
 
             if [ -n "$DIGEST" ]; then
               gh api \
                 -X DELETE \
                 -H "Accept: application/vnd.github+json" \
-                /orgs/${{ github.repository_owner }}/packages/container/vyper/versions/$DIGEST
+                /users/${{ github.repository_owner }}/packages/container/vyper/versions/$DIGEST
             fi
           done
         env:
