@@ -66,7 +66,7 @@ class NeutrinoDiffusion(nn.Module):
         # ~N(0,1) noise
         N = torch.rand((ctx.size(0), self.d_target), device=device)
         # Timesteps
-        T = torch.tensor([1.], device=device).expand(ctx.size(0))
+        T = torch.ones((ctx.size(0),), dtype=ctx.dtype, device=device)
         dT = 1 / self.num_sampling_steps
 
         # Starting from pure noise and removing noise iteratively:

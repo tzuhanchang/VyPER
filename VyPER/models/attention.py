@@ -57,10 +57,11 @@ class DiTBlock(Module):
             Linear(d_embed, 6 * d_embed, bias=True)
         )
 
-    def forward(self, x: Tensor, c: Tensor) -> Tensor:
+    def forward(self, x: Tensor, c: Tensor, mask: Tensor) -> Tensor:
         shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = self.adaLN_modulation(c).chunk(6, dim=2)
         mod = modulate(self.norm1(x), shift_msa, scale_msa)
-        attn, _ = self.attn(mod, mod, mod, need_weights=False)
+        attn = self.attn(mod, mod, mod, key_padding_mask=mask, need_weights=False)[0]
+        attn = attn * (~mask).transpose(0,1).unsqueeze(-1)
         x = x + gate_msa * attn
         x = x + gate_mlp * self.mlp(modulate(self.norm2(x), shift_mlp, scale_mlp))
         return x
@@ -186,14 +187,14 @@ class Denoiser(Module):
         x = self.mlp_noise(x)
 
         # `group_batch` adding a batch dimension
-        x, mask = group_batch(x, nu_batch, return_mask=True)
+        x, mask = group_batch(x, nu_batch, pad_value=0, return_mask=True)
         x = x.transpose(0,1)
-        c = group_batch(c, nu_batch, return_mask=False).transpose(0,1)
+        c = group_batch(c, nu_batch, pad_value=0, return_mask=False).transpose(0,1)
 
         for block in self.blocks:
-            x = block(x, c)
+            x = block(x, c, ~mask[:,:,0])
 
         # Unbatch the output
         x = self.out(x, c)
-        x = x.transpose(0,1)[mask.to(torch.bool)[:,:,self.d_x]].view(-1,self.d_x)
+        x = x.transpose(0,1)[mask[:,:,0].bool(),:]
         return x

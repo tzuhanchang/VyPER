@@ -102,8 +102,7 @@ class VyPER(LightningModule):
         x_out, edge_attr_out, u_out = message_out[0], message_out[1], message_out[2]
         # Neutrino diffusion
         if self.hparams.use_diffusion:
-            num_neutrinos = scatter(x_fw_mask, index=batch, dim=0, dim_size=u.size(0), reduce='sum')
-            nu_batch = torch.unique(batch).repeat_interleave(num_neutrinos)
+            nu_batch = batch[x_fw_mask == 1]
             if train_mode:
                 nu_out = self.NeutrinoDiffusion(message_out[3], batch, nu_batch, neutrino_t, sampling=sampling)
             else:
