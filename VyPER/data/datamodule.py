@@ -191,5 +191,5 @@ class VyPERDataModule(LightningDataModule):
                           follow_batch=['edge_attr', 'hyperedge_index'] if self._use_hyperedge else ['edge_attr'],
                           num_workers=self.num_workers,
                           pin_memory=self.pin_memory,
-                          drop_last=self.drop_last,
+                          drop_last=False,
                           shuffle=False)
