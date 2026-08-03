@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Fixed
+ - Fix `VyPEROnDiskDataset` requiring `LABELS` during predict-set loading ([#79](https://github.com/tzuhanchang/VyPER/pull/79))
 
 
 ## [0.3.0-alpha] - 2026-03-16
