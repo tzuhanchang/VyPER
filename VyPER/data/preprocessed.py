@@ -168,7 +168,7 @@ class VyPEROnDiskDataset(Dataset):
         self.num_workers = num_workers
         self._train_mode = training
 
-        self.db = GraphDB(root=root, config=config, num_workers=num_workers,
+        self.db = GraphDB(root=root, config=config, training=training, num_workers=num_workers,
                           batch_size=batch_size, force_reload=force_reload)
 
         for key, value in self.db.dataset_vars.items():
