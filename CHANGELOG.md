@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Add a GitHub action for code testing ([#76](https://github.com/tzuhanchang/VyPER/pull/76))
 
 ### Changed
+ - Increase `HyperedgeBlock` MLP depth ([#78](https://github.com/tzuhanchang/VyPER/pull/78))
  - Preserve the information from each message-passing iteration ([#74](https://github.com/tzuhanchang/VyPER/pull/74))
 
 ### Removed

@@ -29,7 +29,7 @@ class HyperedgeBlock(nn.Module):
             d_in=node_in_channels+global_in_channels,
             d_out=message_feats,
             d_hidden=message_feats,
-            depth=1,
+            depth=3,
             activation=nn.ReLU(),
             dropout=dropout,
             bias=True
@@ -38,7 +38,7 @@ class HyperedgeBlock(nn.Module):
             d_in=message_feats*2,
             d_out=node_out_channels,
             d_hidden=message_feats,
-            depth=1,
+            depth=2,
             activation=nn.ReLU(),
             dropout=dropout,
             bias=True
