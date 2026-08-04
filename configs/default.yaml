@@ -48,18 +48,27 @@ training:
     accuracy/dR_mean: min
 
 predicting:
-  model_directory:    logs/version_0
+  model_directory:    ${training.save_directory}/version_0
   model_choice:       min-loss
   batch_size:         4096
   num_sampling_steps: 200
   edge_reduction:     mean
-  save_as:            ./output.h5
+  save_as:            ${predicting.model_directory}/output.h5
 
 device:
   accelerator:        gpu
   num_devices:        1
   num_workers:        12
 
+onnx_export:
+  model_directory:    ${predicting.model_directory}
+  model_choice:       ${predicting.model_choice}
+  save_as:            ${predicting.model_directory}/VyPER.onnx
+  opset_version:      21
+  consistence_check:
+    run_check:  True
+    rtol:       1e-04
+    atol:       1e-04
 
 # -------------------------------------- #
 #     Hyperparameter Tuning Settings     #

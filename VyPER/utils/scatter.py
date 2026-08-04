@@ -1,7 +1,52 @@
 import torch
 from torch import Tensor
-from torch_geometric.utils import group_cat, degree, scatter
-from typing import Union, Optional, Tuple
+from torch_geometric.utils import scatter
+from typing import Union, Optional, Tuple, List
+
+
+def group_cat(
+    tensors: Union[List[Tensor], Tuple[Tensor, ...]],
+    indices: Union[List[Tensor], Tuple[Tensor, ...]],
+    dim: int = 0,
+    return_index: bool = False,
+) -> Union[Tensor, Tuple[Tensor, Tensor]]:
+    r"""Concatenates the given sequence of tensors :obj:`tensors` in the given
+    dimension :obj:`dim`.
+    Different from :meth:`torch.cat`, values along the concatenating dimension
+    are grouped according to the indices defined in the :obj:`index` tensors.
+    All tensors must have the same shape (except in the concatenating
+    dimension).
+
+    Args:
+        tensors ([Tensor]): Sequence of tensors.
+        indices ([Tensor]): Sequence of index tensors.
+        dim (int, optional): The dimension along which the tensors are
+            concatenated. (default: :obj:`0`)
+        return_index (bool, optional): If set to :obj:`True`, will return the
+            new index tensor. (default: :obj:`False`)
+
+    Example:
+        >>> x1 = torch.tensor([[0.2716, 0.4233],
+        ...                    [0.3166, 0.0142],
+        ...                    [0.2371, 0.3839],
+        ...                    [0.4100, 0.0012]])
+        >>> x2 = torch.tensor([[0.3752, 0.5782],
+        ...                    [0.7757, 0.5999]])
+        >>> index1 = torch.tensor([0, 0, 1, 2])
+        >>> index2 = torch.tensor([0, 2])
+        >>> scatter_concat([x1,x2], [index1, index2], dim=0)
+        tensor([[0.2716, 0.4233],
+                [0.3166, 0.0142],
+                [0.3752, 0.5782],
+                [0.2371, 0.3839],
+                [0.4100, 0.0012],
+                [0.7757, 0.5999]])
+    """
+    assert len(tensors) == len(indices)
+    index, perm = torch.cat(indices).sort()
+    out = torch.cat(tensors, dim=dim).index_select(dim, perm)
+    return (out, index) if return_index else out
+
 
 def group_batch(
         src: Tensor, index: Tensor, dim: int = 0,
@@ -42,19 +87,13 @@ def group_batch(
                  [[0.1971, 0.2903],
                   [0.4086, 0.7221],
                   [  -inf,   -inf]]])
-        tensor([[[ True,  True],
-                 [ True,  True],
-                 [False, False]],
-                [[ True,  True],
-                 [False, False],
-                 [False, False]],
-                [[ True,  True],
-                 [ True,  True],
-                 [False, False]]]))
+        tensor([[ True,  True, False],
+                [ True, False, False],
+                [ True,  True, False]]))
     """
     device = src.device
-    d = degree(index)
-    pad_size = max(d) if pad_size is None else pad_size
+    d = torch.unique(index, return_counts=True)[1]
+    pad_size = torch.max(d) if pad_size is None else pad_size
     degree_missing_in_dim = (pad_size - d).to(torch.long)
     pad_index = torch.unique(index).repeat_interleave(degree_missing_in_dim)
 
@@ -63,11 +102,14 @@ def group_batch(
         padding_fill = torch.full(input.shape, fill,
                                   device=device).index_select(dim, pad_index)
         padded = group_cat([input, padding_fill], [index, pad_index], dim)
-        return torch.stack(padded.split(pad_size, dim), dim)
+        return padded.reshape(*padded.shape[:dim], -1, pad_size, *padded.shape[dim+1:])
 
-    out = batching(src, pad_value)
-    return (out, batching(torch.full(src.shape, True, device=device),
-                          False)) if return_mask else out
+    out  = batching(src, pad_value)
+    mask = batching(torch.ones_like(src, device=device),
+                    0.)[:,:,0]  # Returned mask has a dtype of torch.float32
+                                # becaused of current onnx or torch version.
+                                # See https://github.com/tzuhanchang/VyPER/pull/73
+    return (out, mask) if return_mask else out
 
 
 def softmax(src: Tensor, index: Tensor, dim_size: int, dim: int = 0) -> Tensor:

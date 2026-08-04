@@ -42,7 +42,7 @@ class EdgeModel(Module):
         self.edge_mlp.reset_parameters()
 
     def forward(self, x, edge_index, edge_attr, u, batch):
-        src, dest = edge_index
+        src, dest = edge_index[0], edge_index[1]
         out = torch.cat([x[src], x[dest], edge_attr, u[batch[src]]], 1).float()
         return self.edge_mlp(out)
 
@@ -90,7 +90,7 @@ class NodeModel(Module):
         self.node_mlp.reset_parameters()
 
     def forward(self, x, edge_index, edge_attr, u, batch):
-        src, dest = edge_index
+        src, dest = edge_index[0], edge_index[1]
         message = torch.cat([x[src], x[dest], edge_attr], 1).float()
         message = self.msg_mlp(message)
         agg_mean = scatter(message, dest, dim=0, dim_size=x.size(0), reduce='mean')
@@ -223,16 +223,23 @@ class NeutrinoModel(Module):
     def forward(self, x, edge_index, edge_attr, u, batch, lep_node, lep_forward_edge):
         num_neutrinos = scatter(lep_node, index=batch, dim=0, dim_size=u.size(0), reduce='sum')
 
+        mask_n = lep_node.to(torch.bool)
+        mask_e = lep_forward_edge.to(torch.bool)
+
         # Lepton forward messages
-        src, dest = edge_index[:,lep_forward_edge.to(torch.bool)]
-        ctx = torch.cat([x[src], x[dest], edge_attr[lep_forward_edge.to(torch.bool)]], 1).float()
+        fw_edges = edge_index[:,mask_e]
+        src, dest = fw_edges[0], fw_edges[1]
+        ctx = torch.cat([x[src], x[dest], edge_attr[mask_e]], 1).float()
         ctx = self.ctx_lep_pass(ctx) # message
 
         # Context vector - summarise information for a given neutrino
-        nu_batch = torch.unique(batch).repeat_interleave(num_neutrinos)
+        nu_batch = torch.unique(batch)
+        torch._check(u.shape[0] == nu_batch.shape[0])
+        nu_batch = nu_batch.repeat_interleave(num_neutrinos)
+
         _, dest = torch.unique(dest, return_inverse=True)
-        ctx = torch.cat([x[lep_node.to(torch.bool)],
-                         scatter(ctx, dest, dim=0, dim_size=num_neutrinos.sum(0), reduce='sum'),
+        ctx = torch.cat([x[mask_n],
+                         scatter(ctx, dest, dim=0, dim_size=(num_neutrinos.sum(0)).item(), reduce='sum'),
                          u[nu_batch]], dim=1).float()
         ctx = self.ctx_nu_summarise(ctx)
 
@@ -243,12 +250,12 @@ class NeutrinoModel(Module):
         ctx_out  = self.ctx_out(torch.cat([ctx, ctx_rel[nu_batch]], dim=1))
 
         # Conditional AdaLN modulation for backward message passing
-        shift, scale, scale_f  = self.backward_pass_modulation(x[lep_node.to(torch.bool)]).chunk(3, dim=1)
+        shift, scale, scale_f  = self.backward_pass_modulation(x[mask_n]).chunk(3, dim=1)
         backward_pass = self.backward_pass_norm(self.backward_pass_mlp(ctx_out)) * (1 + scale) + shift
 
         # Backward message passing
         backward_shift, backward_scale = (torch.zeros_like(x, device=x.device, dtype=x.dtype),
                                           torch.zeros_like(x, device=x.device, dtype=x.dtype))
-        backward_shift[lep_node.to(torch.bool)] = backward_pass
-        backward_scale[lep_node.to(torch.bool)] = scale_f
+        backward_shift.index_copy_(0, mask_n.nonzero().squeeze(1), backward_pass)
+        backward_scale.index_copy_(0, mask_n.nonzero().squeeze(1), scale_f)
         return ctx_out, (x * (1 + backward_scale) + backward_shift)
