@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+ - Add support for Gaussian noise ([#80](https://github.com/tzuhanchang/VyPER/pull/80))
  - Automated Docker container building with GitHub actions ([#77](https://github.com/tzuhanchang/VyPER/pull/77))
  - Add a GitHub action for code testing ([#76](https://github.com/tzuhanchang/VyPER/pull/76))
 
