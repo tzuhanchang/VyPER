@@ -46,6 +46,7 @@ overwrites the default [training.learning_rate](#traininglearning_rate) to `0.00
     * [network.num_dit_blocks](#networknum_dit_blocks)
     * [network.hyperedge_feats](#networkhyperedge_feats)
     * [network.hyperedge_order](#networkhyperedge_order)
+    * [network.noise_distribution](#networknoise_distribution)
 
 - [training](#training)
 
@@ -189,6 +190,14 @@ This option is used only if `hyperedge` is set to be larger than 0 in [target.to
 
 Order of the hyperedges, $|\tilde{E}_m|$.
 e.g. top quark has three final states, therefore, `hyperedge_order=3`.
+
+
+### network.noise_distribution
+
+Distribution used for noise sampling in the diffusion process.
+Accepts "uniform" (default) or "gaussian".
+
+This option is used only if `neutrinos` is set to be larger than 0 in [target.topology](#targettopology).
 
 
 ## training
