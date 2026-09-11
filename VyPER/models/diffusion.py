@@ -3,7 +3,7 @@ import torch
 
 from torch import Tensor, nn
 from torch_geometric.utils import degree
-from typing import Optional
+from typing import Optional, Literal
 
 from .attention import Denoiser
 
@@ -39,6 +39,7 @@ class NeutrinoDiffusion(nn.Module):
         num_heads: int,
         num_message_steps: int,
         num_dit_blocks: int = 4,
+        noise_distribution: Literal["gaussian", "uniform"] = "uniform",
         num_sampling_steps: int = 1000
     ) -> None:
         super().__init__()
@@ -47,6 +48,7 @@ class NeutrinoDiffusion(nn.Module):
         self.d_target = d_target
         self.num_message_steps  = num_message_steps
         self.num_sampling_steps = num_sampling_steps
+        self._use_gaussian_noise = (noise_distribution == "gaussian")
         self.scheduler = Scheduler()
 
         self.Denoiser = Denoiser(
@@ -63,8 +65,11 @@ class NeutrinoDiffusion(nn.Module):
     def solver(self, ctx: Tensor, nu_batch: Tensor):
         device = ctx.device
 
-        # ~N(0,1) noise
-        N = torch.rand((ctx.size(0), self.d_target), device=device)
+        # ~N(0,1) or ~U(0,1) noise
+        if self._use_gaussian_noise:
+            N = torch.randn((ctx.size(0), self.d_target), device=device)
+        else:
+            N = torch.rand((ctx.size(0), self.d_target), device=device)
         # Timesteps
         T = torch.tensor([1.], device=device).expand(ctx.size(0))
         dT = 1 / self.num_sampling_steps
@@ -107,8 +112,11 @@ class NeutrinoDiffusion(nn.Module):
             T = T.repeat_interleave(degree(nu_batch).to(torch.int64))
             signal_rate, noise_rate, _ = self.scheduler(T)
 
-            # ~N(0,1) noise
-            N = torch.rand((ctx.size(0), self.d_target), device=device)
+            # ~N(0,1) or ~U(0,1) noise
+            if self._use_gaussian_noise:
+                N = torch.randn((ctx.size(0), self.d_target), device=device)
+            else:
+                N = torch.rand((ctx.size(0), self.d_target), device=device)
             # Diffused (noised) data
             D = neutrino_t * signal_rate + N * noise_rate
 

@@ -73,6 +73,7 @@ def Train(cfg : DictConfig) -> None:
         num_sampling_steps = cfg['training']['num_sampling_steps'],
         num_attn_heads = cfg['network']['num_attn_heads'],
         num_dit_blocks = cfg['network']['num_dit_blocks'],
+        noise_distribution = cfg['network']['noise_distribution'],
         optimizer = cfg['training']['optimizer'],
         lr = cfg['training']['learning_rate'],
         weight_decay = cfg['training']['weight_decay'],

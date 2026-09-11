@@ -16,6 +16,7 @@ network:
   num_dit_blocks:     2
   hyperedge_feats:    32
   hyperedge_order:    3
+  noise_distribution: uniform
 
 training:
   learning_rate:      0.0003
