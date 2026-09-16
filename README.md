@@ -6,6 +6,10 @@
 [![Docs](https://img.shields.io/badge/Documentation-read-green.svg)](https://tzuhanchang.github.io/zensical-testing/)
 [![Mattermost](https://img.shields.io/badge/Mattermost-join-0072C6?logo=mattermost&logoColor=white)](https://mattermost.web.cern.ch/hyper/channels/town-square)
 [![Paper](https://img.shields.io/badge/Paper-2402.10149-b31b1b.svg)](https://arxiv.org/abs/2402.10149)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+<a href="https://huggingface.co/datasets/tzuhanchang/VyPER">
+  <img src="https://huggingface.co/datasets/huggingface/badges/resolve/main/dataset-on-hf-md.svg" height="20">
+</a>
 
 </div>
 
