@@ -49,6 +49,8 @@ Select the corresponding environment file from the `environment/` directory (e.g
 
 VyPER uses a specific HDF5 dataset structure to store event-level and object-level information required for reconstruction. To learn how to construct such a dataset, check out our [documentation](https://tzuhanchang.github.io/zensical-testing/), which walks through the expected schema and provides example scripts for converting your own data.
 
+> If you'd rather skip dataset preparation and dive straight in, we also provide several pre-built datasets on [Hugging Face](https://huggingface.co/datasets/tzuhanchang/VyPER), ready to use out of the box.
+
 To launch training, use the following command in the VyPER directory:
 
 ```bash
