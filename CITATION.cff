@@ -27,7 +27,7 @@ preferred-citation:
   journal: "Phys. Rev. D"
   volume: 111
   issue: 3
-  pages: 032004
+  start: "032004"
   year: 2025
   month: 2
   doi: "10.1103/PhysRevD.111.032004"
