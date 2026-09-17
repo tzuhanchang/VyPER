@@ -15,7 +15,7 @@ def expected_HyperedgeBlock_output():
 
 
 @torch.no_grad
-def test_NeutrinoModel(example_batch, expected_HyperedgeBlock_output):
+def test_HyperedgeBlock(example_batch, expected_HyperedgeBlock_output):
     from VyPER.models.hyperedge import HyperedgeBlock
 
     model = HyperedgeBlock(node_in_channels=7, node_out_channels=2,

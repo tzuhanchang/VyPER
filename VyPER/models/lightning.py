@@ -4,7 +4,7 @@ from torch import optim
 from lightning import LightningModule
 from torch_geometric.utils import scatter, unbatch, unbatch_edge_index
 from torchmetrics.classification import MultilabelAccuracy
-from typing import Optional
+from typing import Optional, Literal
 
 from .mpnn import MPNNs
 from .hyperedge import HyperedgeBlock
@@ -34,6 +34,7 @@ class VyPER(LightningModule):
         num_sampling_steps: int = 50,
         num_attn_heads: int = 1,
         num_dit_blocks: int = 4,
+        noise_distribution: Literal["gaussian", "uniform"] = "uniform",
         optimizer: str = "Adam",
         lr: float = 1e-3,
         weight_decay: float = 0.01,
@@ -74,6 +75,7 @@ class VyPER(LightningModule):
                 num_heads=self.hparams.num_attn_heads,
                 num_message_steps=self.hparams.num_message_layers,
                 num_dit_blocks=self.hparams.num_dit_blocks,
+                noise_distribution=self.hparams.noise_distribution,
                 num_sampling_steps=self.hparams.num_sampling_steps
             )
 
