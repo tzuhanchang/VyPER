@@ -5,7 +5,7 @@
 [![Workflows](https://github.com/tzuhanchang/VyPER/actions/workflows/testing.yml/badge.svg)](https://github.com/tzuhanchang/VyPER/actions/workflows/testing.yml)
 [![Docs](https://img.shields.io/badge/Documentation-read-green.svg)](https://tzuhanchang.github.io/zensical-testing/)
 [![Mattermost](https://img.shields.io/badge/Mattermost-join-0072C6?logo=mattermost&logoColor=white)](https://mattermost.web.cern.ch/hyper/channels/town-square)
-[![Paper](https://img.shields.io/badge/Paper-2402.10149-b31b1b.svg)](https://arxiv.org/abs/2402.10149)
+[![Paper](https://img.shields.io/badge/Paper-2402.10149-b31b1b.svg)](https://arxiv.org/abs/2609.18928)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENCE)
 <a href="https://huggingface.co/datasets/tzuhanchang/VyPER">
   <img src="https://huggingface.co/datasets/huggingface/badges/resolve/main/dataset-on-hf-md.svg" height="20">
@@ -86,6 +86,22 @@ The updated node, edge, and global states from each layer are extracted and aggr
 ## Citation
 
 If you use VyPER in your analysis, please cite:
+
+### VyPER
+
+``` bibtex
+@article{Mao:2026vpr,
+    author = "Mao, Lining and Peters, Yvonne and Simpson, Ethan and Zhang, Zihan",
+    title = "{Comprehensive reconstruction of collider events with hypergraph representation learning and graph-conditioned diffusion}",
+    eprint = "2609.18928",
+    archivePrefix = "arXiv",
+    primaryClass = "hep-ph",
+    month = "9",
+    year = "2026"
+}
+```
+
+The project was selected by the ERC, and partially funded by UKRI, under Grant No. EP/Z533865/1.
 
 ### HyPER
 
