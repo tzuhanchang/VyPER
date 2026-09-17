@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Removed
+
+### Fixed
+
+
+## [1.0.0] - 2026-09-17
+
+### Added
  - Add support for Gaussian noise ([#80](https://github.com/tzuhanchang/VyPER/pull/80))
  - Automated Docker container building with GitHub actions ([#77](https://github.com/tzuhanchang/VyPER/pull/77))
  - Add a GitHub action for code testing ([#76](https://github.com/tzuhanchang/VyPER/pull/76))
@@ -15,8 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
  - Increase `HyperedgeBlock` MLP depth ([#78](https://github.com/tzuhanchang/VyPER/pull/78))
  - Preserve the information from each message-passing iteration ([#74](https://github.com/tzuhanchang/VyPER/pull/74))
-
-### Removed
 
 ### Fixed
  - Fix `VyPEROnDiskDataset` requiring `LABELS` during predict-set loading ([#79](https://github.com/tzuhanchang/VyPER/pull/79))
@@ -33,8 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Upgrade dependencies: Python 3.13, PyTorch 2.9, CUDA 13.0 ([#68](https://github.com/tzuhanchang/VyPER/pull/68))
  - Change how graphs are processed and saved using `VyPEROnDiskDataset` ([#66](https://github.com/tzuhanchang/VyPER/pull/66))
  - Streamlining message-passing framework ([#62](https://github.com/tzuhanchang/VyPER/pull/62))
-
-### Removed
 
 ### Fixed
  - Fix `ckpt_loader` metric floating-point decimals ([#67](https://github.com/tzuhanchang/VyPER/pull/67))
@@ -129,6 +136,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Fix the missing `x_fw_mask` and `edge_fw_mask` ([#6](https://github.com/tzuhanchang/VyPER/pull/6))
  - Fix input data not being transformed/scaled ([#3](https://github.com/tzuhanchang/VyPER/pull/3))
 
+[1.0.0]: https://github.com/tzuhanchang/VyPER/compare/v0.3.0-alpha...v1.0.0
 [0.3.0-alpha]: https://github.com/tzuhanchang/VyPER/compare/v0.2.3-alpha...v0.3.0-alpha
 [0.2.3-alpha]: https://github.com/tzuhanchang/VyPER/compare/v0.2.2-alpha...v0.2.3-alpha
 [0.2.2-alpha]: https://github.com/tzuhanchang/VyPER/compare/v0.2.1-alpha...v0.2.2-alpha
