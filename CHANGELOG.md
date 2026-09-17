@@ -43,8 +43,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Change how graphs are processed and saved using `VyPEROnDiskDataset` ([#66](https://github.com/tzuhanchang/VyPER/pull/66))
  - Streamlining message-passing framework ([#62](https://github.com/tzuhanchang/VyPER/pull/62))
 
-### Removed
-
 ### Fixed
  - Fix `ckpt_loader` metric floating-point decimals ([#67](https://github.com/tzuhanchang/VyPER/pull/67))
 
