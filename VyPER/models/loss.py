@@ -78,14 +78,34 @@ def DiffusionLoss(nu_loss: Tensor, nu_batch: Tensor, reduction: str='mean',
     return scatter(nu_loss.flatten(), nu_batch, dim_size=num_graphs, reduce=reduction)
 
 
-def CombinedLoss(edge_loss: Tensor, nu_loss: Optional[Tensor]=None, hyperedge_loss: Optional[Tensor]=None,
-                 alpha: float=0.5, eta: float=0.5, reduction='mean') -> Tensor:
+def ClassificationLoss(u_out: Tensor, u_t: Tensor, reduction: str='mean') -> Tensor:
+    r"""Calculate per graph event classification loss.
+
+    Args:
+        u_out (Tensor): classification output.
+        u_t (Tensor): classification targets.
+        reduction (optional: str): the reduce operation (default: 'mean').
+    
+    :rtype: :class:`Tensor`
+    """
+    return nn.functional.cross_entropy(u_out, u_t, reduction=reduction)
+
+
+def CombinedLoss(edge_loss: Optional[Tensor]=None,
+                 nu_loss: Optional[Tensor]=None,
+                 hyperedge_loss: Optional[Tensor]=None,
+                 u_loss: Optional[Tensor]=None,
+                 alpha: float=0.5,
+                 eta: float=0.5,
+                 xi: float=0.5,
+                 reduction='mean') -> Tensor:
     r"""Get combined loss.
 
     Args:
         egde_loss (Tensor): edge loss.
         nu_loss (Tensor): diffusion loss.
         hyperedge_loss (Tensor): hyperedge loss.
+        u_loss (Tensor): event classification loss.
         alpha (optional: Tensor): hyperedge loss weight. (default: 0.5)
         eta (optional: Tensor): diffusion loss weight. (default: 0.5)
         reduction (optional: str): the reduce operation (default: 'mean').
@@ -100,8 +120,15 @@ def CombinedLoss(edge_loss: Tensor, nu_loss: Optional[Tensor]=None, hyperedge_lo
     if nu_loss is None:
         nu_loss = 0
         eta = 0
+    if u_loss is None:
+        u_loss = 0
+        xi = 0
 
-    l = eta * nu_loss + (1-eta) * (alpha * hyperedge_loss + (1-alpha) * edge_loss)
+    l = xi * u_loss + (1-xi) * ( 
+        eta * nu_loss + (1-eta) * (
+            alpha * hyperedge_loss + (1-alpha) * edge_loss
+        )
+    )
 
     if reduction == 'mean':
         rd = torch.mean

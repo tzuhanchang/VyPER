@@ -33,6 +33,7 @@ class PredictionWriter(BasePredictionWriter):
     def __init__(
             self,
             output_dir,
+            global_out_channels: Optional[int]=None,
             edge_out_channels: Optional[int]=None,
             nu_out_channels: Optional[int]=None,
             hyperedge_out_channels: Optional[int]=None,
@@ -42,6 +43,7 @@ class PredictionWriter(BasePredictionWriter):
         super().__init__(write_interval='batch')
 
         self.output_dir = output_dir
+        self.global_out_channels = global_out_channels
         self.edge_out_channels = edge_out_channels
         self.nu_out_channels = nu_out_channels
         self.hyperedge_out_channels = hyperedge_out_channels
@@ -61,6 +63,9 @@ class PredictionWriter(BasePredictionWriter):
         index_dtype = h5py.vlen_dtype(np.dtype('int64'))
         value_dtype = h5py.vlen_dtype(np.dtype('float32'))
 
+        if self.global_out_channels is not None:
+            self.classification_out = data_group.create_dataset(
+                "Classification", (self.num_pred_events,self.global_out_channels),dtype=np.dtype('float32'))
         if self.edge_out_channels is not None:
             self.edge_index = data_group.create_dataset(
                 "EdgeIndex", (self.num_pred_events,2),dtype=index_dtype)
@@ -97,6 +102,8 @@ class PredictionWriter(BasePredictionWriter):
             nu_out = prediction[2]
         if self.hyperedge_out_channels is not None:
             hyperedge_out, hyperedge_index = prediction[3], prediction[4]
+        if self.global_out_channels is not None:
+            u_out = prediction[5]
 
         # Event loop
         for i in tqdm(range(len(batch)),
@@ -121,6 +128,9 @@ class PredictionWriter(BasePredictionWriter):
             if self.hyperedge_out_channels is not None:
                 self.hyperedge_out[idx_save] = hyperedge_out[i].transpose(0,1).detach().cpu().numpy()
                 self.hyperedge_index[idx_save] = hyperedge_index[i].detach().cpu().numpy()
+
+            if self.global_out_channels is not None:
+                self.classification_out[idx_save] = u_out[i].detach().cpu().numpy()
 
         # Close the file when the final event is written
         if (idx_save + 1) == self.num_pred_events:

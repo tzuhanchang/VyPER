@@ -3,7 +3,6 @@ import torch
 from torch import nn
 from typing import Optional
 
-from .mlp import Mlp
 from .message import EdgeModel, NodeModel, GlobalModel, NeutrinoModel
 
 
@@ -74,20 +73,15 @@ class MPNNs(nn.Module):
             node_in_channels,
             edge_in_channels,
             global_in_channels,
-            node_out_channels: int = 1,
-            edge_out_channels: int = 1,
-            global_out_channels: int = 1,
             num_layers: int = 1,
             nu_ctx_channels: int = 1,
             message_feats: int = 32,
             dropout: float = 0.01,
-            use_edge: bool = True,
             use_neutrino: bool = True
         ) -> None:
         super().__init__()
 
         self.num_layers = num_layers
-        self._use_edge = use_edge
         self._use_neutrino = use_neutrino
 
         for i in range(num_layers):
@@ -106,15 +100,15 @@ class MPNNs(nn.Module):
                             d_node=node_in_channels,
                             d_edge=message_feats,
                             d_glob=global_in_channels,
-                            d_out=node_out_channels,
+                            d_out=message_feats,
                             d_embed=message_feats,
                             dropout=dropout
                         ),
                         GlobalModel(
-                            d_node=node_out_channels,
+                            d_node=message_feats,
                             d_edge=message_feats,
                             d_glob=global_in_channels,
-                            d_out=global_out_channels,
+                            d_out=message_feats,
                             d_embed=message_feats,
                             dropout=dropout
                         ),
@@ -180,15 +174,15 @@ class MPNNs(nn.Module):
                             d_node=message_feats,
                             d_edge=message_feats,
                             d_glob=message_feats,
-                            d_out=node_out_channels,
+                            d_out=message_feats,
                             d_embed=message_feats,
                             dropout=dropout
                         ),
                         GlobalModel(
-                            d_node=node_out_channels,
+                            d_node=message_feats,
                             d_edge=message_feats,
                             d_glob=message_feats,
-                            d_out=global_out_channels,
+                            d_out=message_feats,
                             d_embed=message_feats,
                             dropout=dropout
                         ),
@@ -240,18 +234,6 @@ class MPNNs(nn.Module):
                     )
                 )
 
-        if self._use_edge:
-            self.FinalEdgeLayer = Mlp(
-                d_in=self.num_layers*message_feats,
-                d_out=edge_out_channels,
-                d_hidden=message_feats,
-                depth=2,
-                activation=nn.ReLU(),
-                dropout=dropout,
-                bias=True)
-        else:
-            self.register_parameter('FinalEdgeLayer', None)
-
     def reset_parameters(self):
         r"""Resets all learnable parameters of the module."""
         for i in range(self.num_layers):
@@ -283,7 +265,5 @@ class MPNNs(nn.Module):
             u_ctx.append(u)
 
         # Summarising
-        if self._use_edge:
-            edge_attr = self.FinalEdgeLayer(torch.cat(edge_ctx, dim=1))
         nu_ctx = torch.cat(nu_ctx, dim=1).float() if self._use_neutrino else None
-        return [torch.cat(x_ctx, dim=1), edge_attr, torch.cat(u_ctx, dim=1), nu_ctx]
+        return [torch.cat(x_ctx, dim=1), torch.cat(edge_ctx, dim=1), torch.cat(u_ctx, dim=1), nu_ctx]

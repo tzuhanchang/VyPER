@@ -53,11 +53,13 @@ def Train(cfg : DictConfig) -> None:
     _use_edge      = 'edge' in cfg['target'].keys()
     _use_hyperedge = 'hyperedge' in cfg['target'].keys()
     _use_diffusion = 'neutrinos' in cfg['target'].keys()
+    _use_classification = 'classification' in cfg['target'].keys()
 
     model = VyPER(
         node_in_channels = len(cfg['input']['node_features'])+1,
         edge_in_channels = len(cfg['input']['edge_features']),
         global_in_channels = len(cfg['input']['global_features']),
+        global_out_channels = cfg['target']['classification']['num_classes'] if _use_classification else None,
         edge_out_channels = len(cfg['target']['edge'])+1 if _use_edge else 0,
         hyperedge_out_channels = len(cfg['target']['hyperedge'])+1 if _use_hyperedge else None,
         nu_out_channels = len(cfg['target']['neutrinos']['features']) if _use_diffusion else None,
@@ -68,18 +70,20 @@ def Train(cfg : DictConfig) -> None:
         use_edge = _use_edge,
         use_hyperedge = _use_hyperedge,
         use_diffusion = _use_diffusion,
+        use_classification = _use_classification,
         hyperedge_feats = cfg['network']['hyperedge_feats'] if _use_hyperedge else None,
         hyperedge_order = cfg['network']['hyperedge_order'] if _use_hyperedge else None,
         num_sampling_steps = cfg['training']['num_sampling_steps'],
         num_attn_heads = cfg['network']['num_attn_heads'],
         num_dit_blocks = cfg['network']['num_dit_blocks'],
-        noise_distribution = cfg['network']['noise_distribution'],
+        noise_distribution = cfg['network'].get('noise_distribution', 'uniform'),
         optimizer = cfg['training']['optimizer'],
         lr = cfg['training']['learning_rate'],
         weight_decay = cfg['training']['weight_decay'],
         momentum = cfg['training']['momentum'],
         alpha = cfg['training']['alpha'],
         eta = cfg['training']['eta'],
+        xi = cfg['training']['xi'] if _use_classification else 0.,
         reduction = cfg['training']['loss_reduction'],
         lr_scheduler=cfg['training']['lr_scheduler']
     )
