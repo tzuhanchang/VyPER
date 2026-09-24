@@ -105,11 +105,13 @@ class NeutrinoDiffusion(nn.Module):
         loss = None
         if neutrino_t is not None:
             device = batch.device
-            num_graphs = len(degree(batch))
+            deg = degree(nu_batch)
+            deg = deg[deg!=0]   # filter out events with 0 neutrinos
+            num_graphs = len(deg)
 
             # Sample timesteps
             T = torch.rand(num_graphs, device=device)
-            T = T.repeat_interleave(degree(nu_batch).to(torch.int64))
+            T = T.repeat_interleave(deg.to(torch.int64))
             signal_rate, noise_rate, _ = self.scheduler(T)
 
             # ~N(0,1) or ~U(0,1) noise
