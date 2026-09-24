@@ -221,11 +221,10 @@ class NeutrinoModel(Module):
                 layer.reset_parameters()
 
     def forward(self, x, edge_index, edge_attr, u, batch, lep_node, lep_forward_edge):
-        num_neutrinos = scatter(lep_node, index=batch, dim=0, dim_size=u.size(0), reduce='sum')
-        nu_batch = batch[lep_node == 1]
-
         mask_n = lep_node.to(torch.bool)
         mask_e = lep_forward_edge.to(torch.bool)
+        nu_index = mask_n.nonzero().squeeze(1)  # node index of each neutrino-associated node
+        nu_batch = batch[nu_index]
 
         # Lepton forward messages
         fw_edges = edge_index[:,mask_e]
@@ -234,10 +233,11 @@ class NeutrinoModel(Module):
         ctx = self.ctx_lep_pass(ctx) # message
 
         # Context vector - summarise information for a given neutrino
+        # (forward edges always end on a neutrino-associated node, see `get_masks`)
         local_fw_id = torch.cumsum(mask_n, dim=0) - 1
         local_fw_dest = local_fw_id[dest]
-        ctx = torch.cat([x[mask_n],
-                         scatter(ctx, local_fw_dest, dim=0, dim_size=(num_neutrinos.sum(0)).item(), reduce='sum'),
+        ctx = torch.cat([x[nu_index],
+                         scatter(ctx, local_fw_dest, dim=0, dim_size=nu_index.size(0), reduce='sum'),
                          u[nu_batch]], dim=1).float()
         ctx = self.ctx_nu_summarise(ctx)
 
@@ -248,12 +248,12 @@ class NeutrinoModel(Module):
         ctx_out  = self.ctx_out(torch.cat([ctx, ctx_rel[nu_batch]], dim=1))
 
         # Conditional AdaLN modulation for backward message passing
-        shift, scale, scale_f  = self.backward_pass_modulation(x[mask_n]).chunk(3, dim=1)
+        shift, scale, scale_f  = self.backward_pass_modulation(x[nu_index]).chunk(3, dim=1)
         backward_pass = self.backward_pass_norm(self.backward_pass_mlp(ctx_out)) * (1 + scale) + shift
 
         # Backward message passing
         backward_shift, backward_scale = (torch.zeros_like(x, device=x.device, dtype=x.dtype),
                                           torch.zeros_like(x, device=x.device, dtype=x.dtype))
-        backward_shift.index_copy_(0, mask_n.nonzero().squeeze(1), backward_pass)
-        backward_scale.index_copy_(0, mask_n.nonzero().squeeze(1), scale_f)
+        backward_shift.index_copy_(0, nu_index, backward_pass)
+        backward_scale.index_copy_(0, nu_index, scale_f)
         return ctx_out, (x * (1 + backward_scale) + backward_shift)

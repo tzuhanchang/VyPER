@@ -104,7 +104,7 @@ class VyPER(LightningModule):
         x_out, edge_attr_out, u_out = message_out[0], message_out[1], message_out[2]
         # Neutrino diffusion
         if self.hparams.use_diffusion:
-            nu_batch = batch[x_fw_mask == 1]
+            nu_batch = batch[x_fw_mask.to(torch.bool)]
             if train_mode:
                 nu_out = self.NeutrinoDiffusion(message_out[3], batch, nu_batch, neutrino_t, sampling=sampling)
             else:
@@ -165,7 +165,7 @@ class VyPER(LightningModule):
         # Compute diffusion loss
         if self.hparams.use_diffusion:
             nu_loss, nu_batch = out[1], out[2]
-            nu_loss = DiffusionLoss(nu_loss, nu_batch, reduction='sum')
+            nu_loss = DiffusionLoss(nu_loss, nu_batch, reduction='sum', num_graphs=train_batch.num_graphs)
             self.log('loss/train_diffusion_loss', nu_loss.mean(), batch_size=len(train_batch),
                  on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
         else:
@@ -227,7 +227,7 @@ class VyPER(LightningModule):
                 nu_loss, nu_out = nu_out
             else:
                 nu_loss = nu_out
-            nu_loss = DiffusionLoss(nu_loss, nu_batch, reduction='sum')
+            nu_loss = DiffusionLoss(nu_loss, nu_batch, reduction='sum', num_graphs=val_batch.num_graphs)
             self.log('loss/validation_diffusion_loss', nu_loss.mean(), batch_size=len(val_batch),
                      on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
         else:
@@ -308,7 +308,7 @@ class VyPER(LightningModule):
             nu_out, nu_batch = out[1], out[2]
             for column in range(nu_out.size(1)):
                 nu_out[:,column] = self.trainer.datamodule.nu_reverse_transform_methods[column](nu_out[:,column])
-            nu_out = unbatch(nu_out, nu_batch, dim=0)
+            nu_out = unbatch(nu_out, nu_batch, dim=0, batch_size=pred_batch.num_graphs)
         else:
             nu_out = None
 

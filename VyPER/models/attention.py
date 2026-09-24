@@ -2,6 +2,7 @@ import math
 import torch
 
 from torch import Tensor
+from typing import Optional
 from torch.nn import Module, Sequential as Seq, LayerNorm, Linear, Dropout, GELU, SiLU, MultiheadAttention, ModuleList
 
 from VyPER.utils import group_batch
@@ -57,11 +58,23 @@ class DiTBlock(Module):
             Linear(d_embed, 6 * d_embed, bias=True)
         )
 
-    def forward(self, x: Tensor, c: Tensor, mask: Tensor) -> Tensor:
+    def forward(self, x: Tensor, c: Tensor, key_padding_mask: Optional[Tensor] = None) -> Tensor:
+        r"""
+        Args:
+            x (torch.Tensor): input sequence of shape [L, B, `d_embed`].
+            c (torch.Tensor): conditioning vectors of shape [L, B, `d_embed`].
+            key_padding_mask (torch.Tensor, optional): boolean mask of shape [B, L],
+                :obj:`True` marks padded positions, which are ignored as attention keys.
+                (default :obj:`None`)
+        """
         shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = self.adaLN_modulation(c).chunk(6, dim=2)
         mod = modulate(self.norm1(x), shift_msa, scale_msa)
-        attn = self.attn(mod, mod, mod, key_padding_mask=mask, need_weights=False)[0]
-        attn = attn * (~mask).transpose(0,1).unsqueeze(-1)
+        attn = self.attn(mod, mod, mod, key_padding_mask=key_padding_mask, need_weights=False)[0]
+        if key_padding_mask is not None:
+            # Zero the attention output at padded positions. Not required for correctness
+            # (padded positions are never used as keys and are dropped after unbatching),
+            # but keeps padded rows from carrying spurious values between blocks.
+            attn = attn * (~key_padding_mask).transpose(0,1).unsqueeze(-1)
         x = x + gate_msa * attn
         x = x + gate_mlp * self.mlp(modulate(self.norm2(x), shift_mlp, scale_mlp))
         return x
@@ -177,24 +190,35 @@ class Denoiser(Module):
         :obj:`x` has a dimension of [N,`d_x`]
         :obj:`c` has a dimension of [N,`d_ctx`]
         :obj:`T` has a dimension of [N]
+        :obj:`nu_batch` has a dimension of [N], sorted, mapping each neutrino to its event
 
         Note:
             :obj:`c` is the contaxt vector summarised from
             all message-passing layers.
+            Events may have different numbers of neutrinos, including none.
         """
+        # No neutrinos in the whole batch
+        if x.size(0) == 0:
+            return x.new_zeros((0, self.d_x))
+
         T = self.timestep_embedding(T)
         c = self.mlp_context(torch.cat([c,T],dim=1))
         x = self.mlp_noise(x)
 
-        # `group_batch` adding a batch dimension
-        x, mask = group_batch(x, nu_batch, pad_value=0, return_mask=True)
+        # Re-index events to consecutive ids, so events without
+        # neutrinos do not leave empty groups in `group_batch`
+        _, nu_group = torch.unique_consecutive(nu_batch, return_inverse=True)
+
+        # `group_batch` adding a batch dimension, padded with zeros
+        x, is_real = group_batch(x, nu_group, pad_value=0, return_mask=True)
+        key_padding_mask = ~is_real[:,:,0]
         x = x.transpose(0,1)
-        c = group_batch(c, nu_batch, pad_value=0, return_mask=False).transpose(0,1)
+        c = group_batch(c, nu_group, pad_value=0, return_mask=False).transpose(0,1)
 
         for block in self.blocks:
-            x = block(x, c, ~mask[:,:,0])
+            x = block(x, c, key_padding_mask)
 
         # Unbatch the output
         x = self.out(x, c)
-        x = x.transpose(0,1)[mask[:,:,0].bool(),:]
+        x = x.transpose(0,1)[~key_padding_mask,:]
         return x
