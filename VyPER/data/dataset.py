@@ -382,6 +382,14 @@ class VyPERDataset(Dataset):
                 hyperedge_attr_t = None
             if self._use_diffusion:
                 neutrino_t = self.build_neutrino_target(self.file['LABELS'],index)
+                # One neutrino is predicted per associated node, matched to the targets in order
+                num_associated_nodes = int(x_fw_mask.sum())
+                if neutrino_t.size(0) != num_associated_nodes:
+                    raise ValueError(
+                        f"Event {index} has {num_associated_nodes} node(s) associated with neutrinos "
+                        f"(`target.neutrinos.associated_nodes`) but {neutrino_t.size(0)} target neutrino(s) "
+                        f"in `LABELS/NEUTRINO`. These must match."
+                    )
             else:
                 neutrino_t = None
             if self._use_edge:

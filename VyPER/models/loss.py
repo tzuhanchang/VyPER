@@ -60,17 +60,22 @@ def HyperedgeLoss(x_out: Tensor, x_t: Tensor, x_t_batch: Tensor,
     return scatter(l, x_t_batch, reduce=reduction)
 
 
-def DiffusionLoss(nu_loss: Tensor, nu_batch: Tensor, reduction: str='mean') -> Tensor:
+def DiffusionLoss(nu_loss: Tensor, nu_batch: Tensor, reduction: str='mean',
+                  num_graphs: Optional[int]=None) -> Tensor:
     r"""Calculate per graph diffusion loss.
 
     Args:
         nu_loss (Tensor): diffusion loss.
         nu_batch (Tensor): neutrino batch.
         reduction (optional: str): the reduce operation (default: 'mean').
-    
+        num_graphs (optional: int): number of graphs in the batch. Graphs without
+            neutrinos get a zero loss. If not given, it is inferred from
+            :obj:`nu_batch`, which misses trailing graphs without neutrinos.
+            (default: :obj:`None`)
+
     :rtype: :class:`Tensor`
     """
-    return scatter(nu_loss.flatten(), nu_batch, reduce=reduction)
+    return scatter(nu_loss.flatten(), nu_batch, dim_size=num_graphs, reduce=reduction)
 
 
 def CombinedLoss(edge_loss: Tensor, nu_loss: Optional[Tensor]=None, hyperedge_loss: Optional[Tensor]=None,
