@@ -2,6 +2,7 @@
 
 <div align="center">
 
+[![Release](https://img.shields.io/github/v/release/tzuhanchang/VyPER?label=release)](https://github.com/tzuhanchang/VyPER/releases/latest)
 [![Workflows](https://github.com/tzuhanchang/VyPER/actions/workflows/testing.yml/badge.svg)](https://github.com/tzuhanchang/VyPER/actions/workflows/testing.yml)
 [![Docs](https://img.shields.io/badge/Documentation-read-green.svg)](https://tzuhanchang.github.io/zensical-testing/)
 [![Mattermost](https://img.shields.io/badge/Mattermost-join-0072C6?logo=mattermost&logoColor=white)](https://mattermost.web.cern.ch/hyper/channels/town-square)
@@ -27,10 +28,14 @@ ______________________________________________________________________
 
 ## Installation
 
-Clone the repository:
+> [!IMPORTANT]
+> Please use the [latest release](https://github.com/tzuhanchang/VyPER/releases/latest) (currently **v1.0.0**) rather than the `main` branch.
+> `main` is under active development and may contain untested or breaking changes.
+
+Clone the repository at the latest release tag:
 
 ```bash
-git clone https://github.com/tzuhanchang/VyPER.git
+git clone --branch v1.0.0 https://github.com/tzuhanchang/VyPER.git
 ```
 
 Then create the conda environment using the file that matches your platform:
