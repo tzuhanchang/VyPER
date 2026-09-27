@@ -137,7 +137,8 @@ def Train(cfg : DictConfig) -> None:
     trainer.fit(
         model,
         datamodule = datamodule,
-        ckpt_path = cfg['training']['continue_from_ckpt']
+        ckpt_path = cfg['training']['continue_from_ckpt'],
+        weights_only = False if cfg['training']['continue_from_ckpt'] is not None else None
     )
 
 
