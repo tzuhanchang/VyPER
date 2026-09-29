@@ -16,19 +16,34 @@ class PredictionWriter(BasePredictionWriter):
 
     Args:
         output_dir (str): Path where the results are dumped.
+        edge_out_channels (int, optional): number of edge classes, :obj:`None` if
+            edges are not predicted. (default: :obj:`None`)
+        nu_out_channels (int, optional): number of neutrino features, :obj:`None` if
+            neutrinos are not predicted. The `Neutrino` dataset has a shape of
+            [num_events, `nu_out_channels`], each entry holding one value per neutrino
+            in the event. (default: :obj:`None`)
+        hyperedge_out_channels (int, optional): number of hyperedge classes, :obj:`None`
+            if hyperedges are not predicted. (default: :obj:`None`)
+        hyperedge_order (int, optional): hyperedge order, required if
+            :obj:`hyperedge_out_channels` is given. (default: :obj:`None`)
+        edge_reduction (str, optional): edge reduction method. (default: :obj:`None`)
 
     :type: :obj:`None`
     """
-    def __init__(self, output_dir, edge_out_channels: int,
-                 num_neutrinos:int=0,
-                 hyperedge_out_channels: Optional[int]=None,
-                 hyperedge_order: Optional[int]=None,
-                 edge_reduction: Optional[str]=None) -> None:
+    def __init__(
+            self,
+            output_dir,
+            edge_out_channels: Optional[int]=None,
+            nu_out_channels: Optional[int]=None,
+            hyperedge_out_channels: Optional[int]=None,
+            hyperedge_order: Optional[int]=None,
+            edge_reduction: Optional[str]=None
+        ) -> None:
         super().__init__(write_interval='batch')
 
         self.output_dir = output_dir
         self.edge_out_channels = edge_out_channels
-        self.num_neutrinos = num_neutrinos
+        self.nu_out_channels = nu_out_channels
         self.hyperedge_out_channels = hyperedge_out_channels
         self.hyperedge_order = hyperedge_order
         self.edge_reduction = edge_reduction
@@ -46,14 +61,14 @@ class PredictionWriter(BasePredictionWriter):
         index_dtype = h5py.vlen_dtype(np.dtype('int64'))
         value_dtype = h5py.vlen_dtype(np.dtype('float32'))
 
-        if self.edge_out_channels > 0:
+        if self.edge_out_channels is not None:
             self.edge_index = data_group.create_dataset(
                 "EdgeIndex", (self.num_pred_events,2),dtype=index_dtype)
             self.edge_out = data_group.create_dataset(
                 "EdgeSoftP", (self.num_pred_events,self.edge_out_channels), dtype=value_dtype)
-        if self.num_neutrinos > 0:
+        if self.nu_out_channels is not None:
             self.neutrino_out = data_group.create_dataset(
-                "Neutrino", (self.num_pred_events,self.num_neutrinos), dtype=value_dtype)
+                "Neutrino", (self.num_pred_events,self.nu_out_channels), dtype=value_dtype)
         if self.hyperedge_out_channels is not None:
             assert self.hyperedge_order is not None
             self.hyperedge_index = data_group.create_dataset(
@@ -76,9 +91,9 @@ class PredictionWriter(BasePredictionWriter):
             self.num_pred_events = len(trainer.datamodule.predict_data)
             self.prepare_output_file()
 
-        if self.edge_out_channels > 0:
+        if self.edge_out_channels is not None:
             edge_out, edge_index = prediction[0], prediction[1]
-        if self.num_neutrinos > 0:
+        if self.nu_out_channels is not None:
             nu_out = prediction[2]
         if self.hyperedge_out_channels is not None:
             hyperedge_out, hyperedge_index = prediction[3], prediction[4]
@@ -89,7 +104,7 @@ class PredictionWriter(BasePredictionWriter):
             idx_save = batch_indices[i]
 
             # Edge reduction
-            if self.edge_out_channels > 0:
+            if self.edge_out_channels is not None:
                 if self.edge_reduction is not None:
                     reduced_edge, reduced_edge_index = edge_reduction(
                         edge_out[i], edge_index[i], reduction=self.edge_reduction,
@@ -100,8 +115,8 @@ class PredictionWriter(BasePredictionWriter):
                 self.edge_out[idx_save] = reduced_edge.transpose(0,1).detach().cpu().numpy()
                 self.edge_index[idx_save] = reduced_edge_index.detach().cpu().numpy()
 
-            if self.num_neutrinos > 0:
-                self.neutrino_out[idx_save] = nu_out[i].detach().cpu().numpy()
+            if self.nu_out_channels is not None:
+                self.neutrino_out[idx_save] = nu_out[i].transpose(0,1).detach().cpu().numpy()
 
             if self.hyperedge_out_channels is not None:
                 self.hyperedge_out[idx_save] = hyperedge_out[i].transpose(0,1).detach().cpu().numpy()

@@ -66,3 +66,70 @@ def test_DiTOut():
 
     out = model(x, c)
     assert torch.allclose(out, y, rtol=1e-3)
+
+@torch.no_grad
+def test_DiTBlock_key_padding_mask():
+    from VyPER.models.attention import DiTBlock
+
+    torch.manual_seed(0)
+    model = DiTBlock(d_embed=4, num_heads=1, mlp_ratio=1., dropout=0.).eval()
+
+    # [L, B, d_embed]; the last position of the second sequence is padding
+    x = torch.rand(3, 2, 4)
+    c = torch.rand(3, 2, 4)
+    key_padding_mask = torch.tensor([[False, False, False],
+                                     [False, False, True]])
+
+    out = model(x, c, key_padding_mask)
+
+    # Changing the padded position must not change the non-padded outputs
+    x_alt = x.clone()
+    x_alt[2, 1] = 1e4
+    out_alt = model(x_alt, c, key_padding_mask)
+    assert torch.allclose(out[:, 0], out_alt[:, 0])
+    assert torch.allclose(out[:2, 1], out_alt[:2, 1])
+
+
+def _run_denoiser(model, nu_batch, seed=0):
+    g = torch.Generator().manual_seed(seed)
+    n = len(nu_batch)
+    x = torch.rand(n, model.d_x, generator=g)
+    c = torch.rand(n, 5, generator=g)
+    T = torch.rand(n, generator=g)
+    return model(x, c, T, torch.tensor(nu_batch, dtype=torch.long)), (x, c, T)
+
+
+@torch.no_grad
+def test_Denoiser_variable_neutrinos():
+    from VyPER.models.attention import Denoiser
+
+    torch.manual_seed(0)
+    model = Denoiser(d_embed=8, depth=2, num_heads=1, d_x=3, d_ctx=5).eval()
+
+    # Events with 2 and 3 neutrinos in the same batch
+    out, (x, c, T) = _run_denoiser(model, [0, 0, 1, 1, 1])
+    assert out.shape == (5, 3)
+    assert not out.isnan().any()
+
+    # Each event's output does not depend on the other events in the batch
+    out_0 = model(x[:2], c[:2], T[:2], torch.tensor([0, 0]))
+    out_1 = model(x[2:], c[2:], T[2:], torch.tensor([1, 1, 1]))
+    assert torch.allclose(out, torch.cat([out_0, out_1]), atol=1e-6)
+
+
+@torch.no_grad
+def test_Denoiser_events_without_neutrinos():
+    from VyPER.models.attention import Denoiser
+
+    torch.manual_seed(0)
+    model = Denoiser(d_embed=8, depth=2, num_heads=1, d_x=3, d_ctx=5).eval()
+
+    # Event 1 (middle) and event 3 (last) have no neutrinos
+    out, (x, c, T) = _run_denoiser(model, [0, 0, 2, 2, 2])
+    ref, _ = _run_denoiser(model, [0, 0, 1, 1, 1])
+    assert out.shape == (5, 3)
+    assert torch.allclose(out, ref)
+
+    # No neutrinos in the whole batch
+    out = model(torch.rand(0, 3), torch.rand(0, 5), torch.rand(0), torch.zeros(0, dtype=torch.long))
+    assert out.shape == (0, 3)

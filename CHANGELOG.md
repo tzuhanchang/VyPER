@@ -8,8 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+ - Support variable neutrino multiplicity per event ([#83](https://github.com/tzuhanchang/VyPER/pull/83))
 
 ### Changed
+ - `Neutrino` prediction output is stored as `[num_events, num_features]` ([#83](https://github.com/tzuhanchang/VyPER/pull/83))
 
 ### Removed
 
