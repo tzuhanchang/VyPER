@@ -6,9 +6,8 @@ dependencies:
   - pip
   - cuda-toolkit=13.0
   - pip:
-    - torch==2.9.1
+    - https://download-r2.pytorch.org/whl/cu130/torch-2.14.0%2Bcu130-cp313-cp313-manylinux_2_28_x86_64.whl
     - torch_geometric
-    - https://data.pyg.org/whl/torch-2.9.0%2Bcu130/torch_scatter-2.1.2%2Bpt29cu130-cp313-cp313-linux_x86_64.whl
     - numpy
     - pandas
     - lightning

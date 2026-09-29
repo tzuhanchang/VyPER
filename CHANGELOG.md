@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Support variable neutrino multiplicity per event ([#83](https://github.com/tzuhanchang/VyPER/pull/83))
 
 ### Changed
+ - Upgrade dependencies: PyTorch 2.14 ([#86](https://github.com/tzuhanchang/VyPER/pull/86))
  - `Neutrino` prediction output is stored as `[num_events, num_features]` ([#83](https://github.com/tzuhanchang/VyPER/pull/83))
 
 ### Removed
