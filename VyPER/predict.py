@@ -49,7 +49,7 @@ def Predict(cfg : DictConfig) -> None:
         hparams_file = hparams_file,
         map_location = map_location,
         num_sampling_steps = cfg['predicting']['num_sampling_steps'],
-        weights_only = True # Required since PyTorch 2.9.
+        weights_only = False
     )
 
     _use_edge      = 'edge' in cfg['target'].keys()
