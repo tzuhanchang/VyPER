@@ -5,7 +5,7 @@ dependencies:
   - python=3.13.*
   - pip
   - pip:
-    - https://download-r2.pytorch.org/whl/cpu/torch-2.14.0-cp313-cp313-macosx_14_0_arm64.whl
+    - torch==2.14.0
     - torch_geometric
     - numpy
     - pandas
