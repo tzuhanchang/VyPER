@@ -96,7 +96,12 @@ class VyPER(LightningModule):
 
     def forward(self, x, edge_index, edge_attr, u, batch, x_fw_mask=None, edge_fw_mask=None,
                 hyperedge_index=None, hyperedge_index_batch=None,
-                neutrino_t=None, train_mode=True, sampling=True):
+                neutrino_t=None, train_mode=True, sampling=True,
+                noise=None, num_sampling_steps=None):
+        r"""
+        :obj:`noise` and :obj:`num_sampling_steps` are passed to the neutrino
+        sampler, see :meth:`NeutrinoDiffusion.solver`.
+        """
         # Message-passing
         message_out = self.MessagePassing(
             x, edge_index, edge_attr, u, batch, x_fw_mask, edge_fw_mask
@@ -106,9 +111,11 @@ class VyPER(LightningModule):
         if self.hparams.use_diffusion:
             nu_batch = batch[x_fw_mask.to(torch.bool)]
             if train_mode:
-                nu_out = self.NeutrinoDiffusion(message_out[3], batch, nu_batch, neutrino_t, sampling=sampling)
+                nu_out = self.NeutrinoDiffusion(message_out[3], batch, nu_batch, neutrino_t, sampling=sampling,
+                                                noise=noise, num_steps=num_sampling_steps)
             else:
-                nu_out = self.NeutrinoDiffusion(message_out[3], batch, nu_batch)
+                nu_out = self.NeutrinoDiffusion(message_out[3], batch, nu_batch,
+                                                noise=noise, num_steps=num_sampling_steps)
         else:
             nu_out, nu_batch = None, None
         # Hyperedge step
