@@ -46,3 +46,8 @@ jobs:
         run: |
           python -m VyPER.predict --config-name=testing datasets.predict_set=test/fixtures/test.h5
         shell: micromamba-shell {0}
+
+      - name: Run onnx export
+        run: |
+          python -m VyPER.onnx --config-name=testing datasets.predict_set=test/fixtures/test.h5
+        shell: micromamba-shell {0}
