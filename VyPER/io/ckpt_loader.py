@@ -7,13 +7,13 @@ import pandas as pd
 from pathlib import Path
 
 
-def ckpt_loader(cfg):
-    model_directory = Path(cfg['predicting']['model_directory'])
-    model_choice    = cfg['predicting']['model_choice'].split('-')
+def ckpt_loader(cfg, key: str='predicting'):
+    model_directory = Path(cfg[key]['model_directory'])
+    model_choice    = cfg[key]['model_choice'].split('-')
 
     if len(model_choice) != 2:
         warnings.warn(
-            f"Invalid `model_choice`: {cfg['predicting']['model_choice']}, "
+            f"Invalid `model_choice`: {cfg[key]['model_choice']}, "
             "use the last checkpoint instead.", UserWarning)
         ckpt_file = model_directory / 'checkpoints' / 'last.ckpt'
     else:
@@ -34,7 +34,7 @@ def ckpt_loader(cfg):
             metric  = m.group('metric')
             value   = float(m.group('value'))
 
-            rows.append({'epoch': epoch, 'metric': metric, 'value': value})
+            rows.append({'epoch': epoch, 'metric': metric, 'value': value, 'fname': fname})
 
         if not rows:
             raise FileNotFoundError(f"No valid checkpoints found in '{ckpt_dir}'")
@@ -67,11 +67,10 @@ def ckpt_loader(cfg):
         idx_best  = getattr(np, 'arg' + mode)(metric_df['value'])
         best_row  = metric_df.iloc[idx_best]
 
-        # Build the filename again (to be safe)
-        best_fname = f"epoch={best_row['epoch']}-{target_metric}={best_row['value']:.3f}.ckpt"
-        ckpt_file  = ckpt_dir / best_fname
+        # Best checkpoint
+        ckpt_file  = ckpt_dir / best_row['fname']
 
-        print(f"Loading checkpoint: {ckpt_file.name}")
+    print(f"Loading checkpoint: {ckpt_file.name}")
 
-        return ckpt_file
+    return ckpt_file
 

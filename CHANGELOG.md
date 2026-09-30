@@ -8,14 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+ - Implement `onnx` export ([#73](https://github.com/tzuhanchang/VyPER/pull/73))
  - Support variable neutrino multiplicity per event ([#83](https://github.com/tzuhanchang/VyPER/pull/83))
 
 ### Changed
+ - Improve diffusion speed ([#87](https://github.com/tzuhanchang/VyPER/pull/87))
+ - Upgrade dependencies: PyTorch 2.14 ([#86](https://github.com/tzuhanchang/VyPER/pull/86))
  - `Neutrino` prediction output is stored as `[num_events, num_features]` ([#83](https://github.com/tzuhanchang/VyPER/pull/83))
 
 ### Removed
+ - Remove `VyPER.utils.group_batch` ([#87](https://github.com/tzuhanchang/VyPER/pull/87))
 
 ### Fixed
+ - Fix model loading error when resuming training from a checkpoint ([#85](https://github.com/tzuhanchang/VyPER/pull/85))
 
 
 ## [1.0.0] - 2026-09-17

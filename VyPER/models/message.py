@@ -42,7 +42,7 @@ class EdgeModel(Module):
         self.edge_mlp.reset_parameters()
 
     def forward(self, x, edge_index, edge_attr, u, batch):
-        src, dest = edge_index
+        src, dest = edge_index[0], edge_index[1]
         out = torch.cat([x[src], x[dest], edge_attr, u[batch[src]]], 1).float()
         return self.edge_mlp(out)
 
@@ -90,7 +90,7 @@ class NodeModel(Module):
         self.node_mlp.reset_parameters()
 
     def forward(self, x, edge_index, edge_attr, u, batch):
-        src, dest = edge_index
+        src, dest = edge_index[0], edge_index[1]
         message = torch.cat([x[src], x[dest], edge_attr], 1).float()
         message = self.msg_mlp(message)
         agg_mean = scatter(message, dest, dim=0, dim_size=x.size(0), reduce='mean')

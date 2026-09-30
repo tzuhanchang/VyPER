@@ -84,6 +84,16 @@ overwrites the default [training.learning_rate](#traininglearning_rate) to `0.00
     * [device.num_devices](#devicenum_devices)
     * [device.num_workers](#devicenum_workers)
 
+- [onnx_export](#onnx_export)
+
+    * [onnx_export.model_directory](#onnx_exportmodel_directory)
+    * [onnx_export.model_choice](#onnx_exportmodel_choice)
+    * [onnx_export.save_as](#onnx_exportsave_as)
+    * [onnx_export.opset_version](#onnx_exportopset_version)
+    * [onnx_export.num_sampling_steps](#onnx_exportnum_sampling_steps)
+    * [onnx_export.noise_as_input](#onnx_exportnoise_as_input)
+    * [onnx_export.consistence_check](#onnx_exportconsistence_check)
+
 
 ## datasets
 
@@ -437,6 +447,77 @@ Number of subprocesses to use for data loading.
 
 Set to `0` means that the data will be loaded in the main process.
 A good starting point is to set it to the number of CPU cores on the machine. However, the larger the `num_workers`, the more CPU memory consumed.
+
+
+## onnx_export
+
+Configurations of the ONNX export, performed with:
+```
+python -m VyPER.onnx --config-name=<ConfigFile>
+```
+An example dataset is required as [`datasets.predict_set`](#datasetspredict_set).
+
+The exported model takes the inputs of the enabled modules (`x`, `edge_index`, `edge_attr`, `u`, `batch`, `x_fw_mask`, `edge_fw_mask`, `hyperedge_index` and `hyperedge_index_batch`), together with `num_sampling_steps` and, optionally, `noise`.
+Its outputs are `edge_attr_out` (logits), `nu_out` (before the `reverse_transforms` in [target.neutrinos](#targetneutrinos)), `nu_batch` and `hyperedge_out` (logits).
+Settings needed for inference are stored in the model metadata, e.g. `vyper.num_sampling_steps`, `vyper.noise_distribution` and `vyper.nu_reverse_transforms`.
+
+
+### onnx_export.model_directory
+
+Path to where the model to export is saved.
+
+By default, the same as [predicting.model_directory](#predictingmodel_directory).
+
+
+### onnx_export.model_choice
+
+Choose which saved model state to export.
+
+Supports the same options as [predicting.model_choice](#predictingmodel_choice), which is the default.
+
+
+### onnx_export.save_as
+
+Location and file name of the exported model.
+
+The model is saved in a single `.onnx` file, an existing file is overwritten.
+By default, `VyPER.onnx` in the [predicting.model_directory](#predictingmodel_directory).
+
+
+### onnx_export.opset_version
+
+ONNX opset version of the exported model.
+
+
+### onnx_export.num_sampling_steps
+
+Number of diffusion ODE sampling steps.
+
+The number of steps is an input of the exported model (`num_sampling_steps`, an int64 scalar), so it can be changed at inference without exporting the model again.
+This value is used for the [consistence check](#onnx_exportconsistence_check) and stored in the model metadata as `vyper.num_sampling_steps`.
+By default, the same as [predicting.num_sampling_steps](#predictingnum_sampling_steps).
+
+This option is used only if `neutrinos` is set to be larger than 0 in [target.topology](#targettopology).
+
+
+### onnx_export.noise_as_input
+
+Whether the initial diffusion noise is an input of the exported model.
+
+Supported options:
+ - `false` (default): the noise is sampled inside the model. The neutrino outputs differ between runs, and the [consistence check](#onnx_exportconsistence_check) only verifies their shape.
+ - `true`: the model takes a `noise` input of shape [number of neutrinos, number of neutrino features], one row per node in `x_fw_mask`, in node order. The noise must follow the [network.noise_distribution](#networknoise_distribution) of the trained model (stored in the model metadata as `vyper.noise_distribution`). The neutrino outputs are reproducible and fully verified by the consistence check.
+
+This option is used only if `neutrinos` is set to be larger than 0 in [target.topology](#targettopology).
+
+
+### onnx_export.consistence_check
+
+Compare the outputs of the exported model, evaluated with ONNX Runtime, with the outputs of the PyTorch model, using up to two batches of the example dataset.
+
+ - `run_check`: whether to run the check.
+ - `rtol`: relative tolerance.
+ - `atol`: absolute tolerance.
 
 
 
