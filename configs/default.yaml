@@ -53,6 +53,8 @@ predicting:
   model_choice:       min-loss
   batch_size:         4096
   num_sampling_steps: 200
+  sampling_schedule:
+    scheme:           uniform
   edge_reduction:     mean
   save_as:            ${predicting.model_directory}/output.h5
 
@@ -67,6 +69,7 @@ onnx_export:
   save_as:            ${predicting.model_directory}/VyPER.onnx
   opset_version:      21
   num_sampling_steps: ${predicting.num_sampling_steps} # a model input, used for the consistence check
+  sampling_schedule:  ${predicting.sampling_schedule}
   noise_as_input:     false # initial diffusion noise as a model input
   consistence_check:
     run_check:  True

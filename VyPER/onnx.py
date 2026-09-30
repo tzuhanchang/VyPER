@@ -101,6 +101,24 @@ class VyPERONNX(torch.nn.Module):
         return {key: shapes[key] for key in inputs}
 
 
+def calibrate_time_grid(wrapper: VyPERONNX, data) -> None:
+    r"""Calibrate the `adaptive` time grid of the neutrino sampler on a batch of events,
+    see :meth:`NeutrinoDiffusion.calibrate_time_grid`.
+
+    Args:
+        wrapper (VyPERONNX): the model to export.
+        data (torch_geometric.data.Batch): a batch of events.
+    """
+    model = wrapper.model
+    with torch.no_grad():
+        message_out = model.MessagePassing(data.x, data.edge_index, data.edge_attr, data.u,
+                                           data.batch, data.x_fw_mask, data.edge_fw_mask)
+        nu_batch = data.batch[data.x_fw_mask.to(torch.bool)]
+        model.NeutrinoDiffusion.calibrate_time_grid(message_out[3], nu_batch)
+    print(f"Calibrated time grid ({model.NeutrinoDiffusion.time_grid.extra_repr()}) "
+          f"on {int(nu_batch.numel())} neutrinos.")
+
+
 def export_onnx(wrapper: VyPERONNX, inputs: Dict[str, Tensor], save_as: str, opset_version: int,
                 metadata: Optional[Dict[str, str]] = None) -> None:
     r"""Export a VyPER model to a single `.onnx` file.
@@ -248,6 +266,8 @@ def ONNX(cfg : DictConfig) -> None:
         hparams_file = hparams_file,
         map_location = torch.device('cpu'),
         num_sampling_steps = export_cfg['num_sampling_steps'],
+        sampling_schedule = OmegaConf.to_container(export_cfg['sampling_schedule'])
+            if export_cfg.get('sampling_schedule') is not None else None,
         weights_only = False
     ).eval()
     wrapper = VyPERONNX(model).eval()
@@ -265,6 +285,17 @@ def ONNX(cfg : DictConfig) -> None:
         if len(samples) == 2:
             break
 
+    # The `adaptive` time grid is calibrated on a batch of `predicting.batch_size` events,
+    # and exported as a constant lookup table
+    if wrapper.use_diffusion and model.NeutrinoDiffusion.time_grid.needs_calibration:
+        datamodule = VyPERDataModule(
+            config = osp.join(hydra.utils.get_original_cwd(), f'configs/{HydraConfig.get().job.config_name}.yaml'),
+            predict_set = cfg['datasets']['predict_set'],
+            force_reload = False,
+            batch_size = cfg['predicting']['batch_size'], num_workers = 0, pin_memory = False)
+        datamodule.setup("predict")
+        calibrate_time_grid(wrapper, next(iter(datamodule.predict_dataloader())))
+
     # Model metadata
     metadata = {
         'vyper.commit': _git_commit(),
@@ -278,6 +309,7 @@ def ONNX(cfg : DictConfig) -> None:
             'vyper.num_sampling_steps': export_cfg['num_sampling_steps'],
             'vyper.noise_as_input': export_cfg['noise_as_input'],
             'vyper.noise_distribution': model.hparams.noise_distribution,
+            'vyper.sampling_schedule': model.NeutrinoDiffusion.time_grid.extra_repr(),
             'vyper.nu_features': ', '.join(nu_cfg['features']),
             'vyper.nu_reverse_transforms': ', '.join(nu_cfg['reverse_transforms']),
         })

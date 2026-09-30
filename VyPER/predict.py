@@ -49,6 +49,8 @@ def Predict(cfg : DictConfig) -> None:
         hparams_file = hparams_file,
         map_location = map_location,
         num_sampling_steps = cfg['predicting']['num_sampling_steps'],
+        sampling_schedule = OmegaConf.to_container(cfg['predicting']['sampling_schedule'])
+            if cfg['predicting'].get('sampling_schedule') is not None else None,
         weights_only = False
     )
 

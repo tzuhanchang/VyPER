@@ -75,6 +75,7 @@ overwrites the default [training.learning_rate](#traininglearning_rate) to `0.00
     * [predicting.model_choice](#predictingmodel_choice)
     * [predicting.batch_size](#predictingbatch_size)
     * [predicting.num_sampling_steps](#predictingnum_sampling_steps)
+    * [predicting.sampling_schedule](#predictingsampling_schedule)
     * [predicting.edge_reduction](#predictingedge_reduction)
     * [predicting.save_as](#predictingsave_as)
 
@@ -91,6 +92,7 @@ overwrites the default [training.learning_rate](#traininglearning_rate) to `0.00
     * [onnx_export.save_as](#onnx_exportsave_as)
     * [onnx_export.opset_version](#onnx_exportopset_version)
     * [onnx_export.num_sampling_steps](#onnx_exportnum_sampling_steps)
+    * [onnx_export.sampling_schedule](#onnx_exportsampling_schedule)
     * [onnx_export.noise_as_input](#onnx_exportnoise_as_input)
     * [onnx_export.consistence_check](#onnx_exportconsistence_check)
 
@@ -404,6 +406,35 @@ The number of examples used in one prediction iteration.
 Number of diffusion ODE sampling steps used for logging during prediction.
 
 
+### predicting.sampling_schedule
+
+How the `predicting.num_sampling_steps` steps are spread over the diffusion time $T \in [0, 1]$
+($T=1$ is pure noise, $T=0$ is data).
+For a fixed number of steps, placing more of them where the sampling trajectory bends
+reduces the discretisation error, so fewer steps are needed for the same quality.
+
+Supported `scheme`s and their options:
+ - `uniform` (default): equal steps $\Delta T = 1/N$.
+ - `power`: $T_i = (1-i/N)^{\rho}$, option `rho` (default `2.`). `rho > 1` gives finer steps near the data, `rho < 1` near the noise.
+ - `cosine`: $T_i = (1 - \cos(\pi(1-i/N)))/2$, finer steps at both ends.
+ - `beta`: step density $\propto \mathrm{Beta}(T; a, b)$, options `a`, `b` (default `1.`, i.e. uniform), the timestep distribution family of [arXiv:2411.09998](https://arxiv.org/abs/2411.09998). `a, b < 1` refine the ends, `a, b > 1` the middle.
+ - `adaptive`: the step density is measured from the trained model. On the first batch, a reference solve with `calibration_steps` (default `1000`) uniform steps on up to `calibration_size` (default `4096`) neutrinos estimates the local error of each step, and the step density is set to (local error density)$^{\gamma}$, option `gamma` (default `0.5`), mixed with a fraction `uniform_mix` (default `0.25`) of uniform steps.
+
+Example:
+```yaml
+predicting:
+  num_sampling_steps: 20
+  sampling_schedule:
+    scheme: adaptive
+```
+
+Schedules can be compared on a trained model with
+```
+python -m VyPER.benchmark_sampling --config-name=<ConfigFile> +benchmark.dataset=<file> '+benchmark.num_steps=[5,10,20,50]'
+```
+which reports, for each schedule and number of steps, the deviation from a 1000-step uniform solve starting from the same noise and, for labelled files, the error with respect to the truth.
+
+
 ### predicting.edge_reduction
 
 Method to reduce the two directed edges connecting two endpoints to an undirected one.
@@ -459,7 +490,7 @@ An example dataset is required as [`datasets.predict_set`](#datasetspredict_set)
 
 The exported model takes the inputs of the enabled modules (`x`, `edge_index`, `edge_attr`, `u`, `batch`, `x_fw_mask`, `edge_fw_mask`, `hyperedge_index` and `hyperedge_index_batch`), together with `num_sampling_steps` and, optionally, `noise`.
 Its outputs are `edge_attr_out` (logits), `nu_out` (before the `reverse_transforms` in [target.neutrinos](#targetneutrinos)), `nu_batch` and `hyperedge_out` (logits).
-Settings needed for inference are stored in the model metadata, e.g. `vyper.num_sampling_steps`, `vyper.noise_distribution` and `vyper.nu_reverse_transforms`.
+Settings needed for inference are stored in the model metadata, e.g. `vyper.num_sampling_steps`, `vyper.sampling_schedule`, `vyper.noise_distribution` and `vyper.nu_reverse_transforms`.
 
 
 ### onnx_export.model_directory
@@ -496,6 +527,16 @@ Number of diffusion ODE sampling steps.
 The number of steps is an input of the exported model (`num_sampling_steps`, an int64 scalar), so it can be changed at inference without exporting the model again.
 This value is used for the [consistence check](#onnx_exportconsistence_check) and stored in the model metadata as `vyper.num_sampling_steps`.
 By default, the same as [predicting.num_sampling_steps](#predictingnum_sampling_steps).
+
+This option is used only if `neutrinos` is set to be larger than 0 in [target.topology](#targettopology).
+
+
+### onnx_export.sampling_schedule
+
+Sampling schedule of the exported model, see [predicting.sampling_schedule](#predictingsampling_schedule), which is the default.
+
+The schedule is fixed at export and stored in the model metadata as `vyper.sampling_schedule`.
+The `adaptive` schedule is calibrated on the first batch of [`predicting.batch_size`](#predictingbatch_size) events of the example dataset, and exported as a lookup table.
 
 This option is used only if `neutrinos` is set to be larger than 0 in [target.topology](#targettopology).
 

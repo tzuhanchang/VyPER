@@ -43,6 +43,7 @@ class VyPER(LightningModule):
         eta: float = 0.5,
         reduction: float = 'mean',
         lr_scheduler: Optional[dict] = None,
+        sampling_schedule: Optional[dict] = None,
     ) -> None:
 
         super().__init__()
@@ -76,7 +77,8 @@ class VyPER(LightningModule):
                 num_message_steps=self.hparams.num_message_layers,
                 num_dit_blocks=self.hparams.num_dit_blocks,
                 noise_distribution=self.hparams.noise_distribution,
-                num_sampling_steps=self.hparams.num_sampling_steps
+                num_sampling_steps=self.hparams.num_sampling_steps,
+                sampling_schedule=self.hparams.sampling_schedule
             )
 
         if self.hparams.use_hyperedge:
