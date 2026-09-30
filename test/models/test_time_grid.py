@@ -87,7 +87,15 @@ def test_uniform_solver_matches_constant_step():
         D = model._step(T, T - dT, D, state)
         T = T - dT
 
-    torch.testing.assert_close(model.solver(ctx, nu_batch, noise=noise), model.Denoiser.from_dense(D, state))
+    # Bit-identical, so training (validation sampling) is unaffected
+    ref = model.Denoiser.from_dense(D, state)
+    assert torch.equal(model.solver(ctx, nu_batch, noise=noise), ref)
+    assert torch.equal(model.solver(ctx, nu_batch, noise=noise, num_steps=torch.tensor(4)), ref)
+
+
+def test_default_schedule_adds_no_buffers():
+    assert list(_diffusion().buffers()) == []
+    assert list(_diffusion(sampling_schedule=dict(scheme='cosine')).buffers()) == []
 
 
 @torch.no_grad()

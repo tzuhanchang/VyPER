@@ -41,7 +41,8 @@ class TimeGrid(nn.Module):
 
     Schemes:
 
-    - ``uniform``: :math:`T = u`, i.e. :math:`\Delta T = 1/N`.
+    - ``uniform``: :math:`T = u`, i.e. :math:`\Delta T = 1/N`. The solver then decrements
+      :math:`T` by :math:`\Delta T` at every step, exactly as before this option existed.
     - ``power``: :math:`T = u^{\rho}`. :obj:`rho` > 1 refines the steps near :math:`T = 0`
       (the data end), :obj:`rho` < 1 near :math:`T = 1` (the noise end).
     - ``cosine``: :math:`T = (1 - \cos \pi u) / 2`, refines both ends.
@@ -102,8 +103,10 @@ class TimeGrid(nn.Module):
         self.calibration_steps = int(calibration_steps)
         self.calibration_size = int(calibration_size)
 
-        # Lookup table of w(u) at u = k / (table_size - 1), for `beta` and `adaptive`
-        self.register_buffer('table', torch.empty(0), persistent=False)
+        # Lookup table of w(u) at u = k / (table_size - 1), only for `beta` and `adaptive`,
+        # so the other schemes add no buffers to the model
+        if scheme in ('beta', 'adaptive'):
+            self.register_buffer('table', torch.empty(0), persistent=False)
         # Calibrated step density (T, rho(T)) of the `adaptive` scheme, for diagnostics
         self.density = None
         if scheme == 'beta':
@@ -190,8 +193,8 @@ class TimeGrid(nn.Module):
 
     def grid(self, num_steps: int) -> Tensor:
         r"""All :obj:`num_steps` + 1 timesteps, decreasing from 1 to 0."""
-        steps = torch.tensor(num_steps, device=self.table.device)
-        return self(torch.arange(num_steps + 1, device=self.table.device), steps)
+        device = self.table.device if hasattr(self, 'table') else None
+        return self(torch.arange(num_steps + 1, device=device), torch.tensor(num_steps, device=device))
 
 
 class NeutrinoDiffusion(nn.Module):
@@ -284,9 +287,36 @@ class NeutrinoDiffusion(nn.Module):
 
         # Starting from pure noise and removing noise iteratively:
         D = self.Denoiser.to_dense(noise, state)
-        # Timesteps 1 = T_0 > T_1 > ... > T_N = 0, each computed from its index
-        # (in float32, rather than accumulated) so they do not drift
 
+        if self.time_grid.scheme == 'uniform':
+            # Constant steps, the same as before `sampling_schedule` was introduced
+            # Timesteps
+            # Kept in float32: `T` is decremented `num_steps` times and
+            # would drift under reduced-precision dtypes
+            T = torch.ones((), dtype=torch.float32, device=ctx.device)
+
+            if isinstance(num_steps, Tensor):
+                num_steps = num_steps.reshape(()).to(torch.int64)
+                dT = 1. / num_steps.to(torch.float32)
+
+                def cond_fn(i, T, D):
+                    return i < num_steps
+
+                def body_fn(i, T, D):
+                    D = self._step(T, T - dT, D, state)
+                    return i + 1, T - dT, D
+
+                i = torch.zeros((), dtype=torch.int64, device=ctx.device)
+                _, _, D = while_loop(cond_fn, body_fn, (i, T, D))
+            else:
+                dT = 1 / num_steps
+                for _ in range(num_steps):
+                    D = self._step(T, T - dT, D, state)
+                    T = T - dT
+            return self.Denoiser.from_dense(D, state)
+
+        # Timesteps 1 = T_0 > T_1 > ... > T_N = 0 of `time_grid`, each computed
+        # from its index (in float32, rather than accumulated) so they do not drift
         if isinstance(num_steps, Tensor):
             num_steps = num_steps.reshape(()).to(torch.int64)
 
