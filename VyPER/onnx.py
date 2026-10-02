@@ -18,10 +18,11 @@ from hydra.core.hydra_config import HydraConfig
 from packaging import version
 from pathlib import Path
 from torch import Tensor
+from torch_geometric.loader import DataLoader
 from typing import Dict, List, Optional, Tuple
 
 from VyPER.io import ckpt_loader
-from VyPER.data import VyPERDataModule
+from VyPER.data import VyPERDataset
 from VyPER.models import VyPER
 
 _REQUIREMENTS = {name: RequirementCache(name) for name in ("onnx", "onnxscript", "onnxruntime")}
@@ -64,7 +65,7 @@ class VyPERONNX(torch.nn.Module):
                                        (nu_batch, self.use_diffusion), (hyperedge_out, self.use_hyperedge)) if used)
 
     def example_inputs(self, data, num_sampling_steps: int, noise_as_input: bool) -> Dict[str, Tensor]:
-        r"""Build the model inputs from a batch of the `VyPERDataModule`.
+        r"""Build the model inputs from a batch of the `VyPERDataset`.
 
         Args:
             data (torch_geometric.data.Batch): a batch of events.
@@ -252,15 +253,15 @@ def ONNX(cfg : DictConfig) -> None:
     ).eval()
     wrapper = VyPERONNX(model).eval()
 
-    # Example inputs, the first batch is used for export
-    datamodule = VyPERDataModule(
+    # Example inputs, the first batch is used for export.
+    dataset = VyPERDataset(
+        root = cfg['datasets']['predict_set'],
         config = osp.join(hydra.utils.get_original_cwd(), f'configs/{HydraConfig.get().job.config_name}.yaml'),
-        predict_set = cfg['datasets']['predict_set'],
-        force_reload = cfg['datasets']['force_reload'],
-        batch_size = 2, num_workers = 0, pin_memory = False)
-    datamodule.setup("predict")
+        training = False)
+    loader = DataLoader(dataset, batch_size=2, shuffle=False, drop_last=False,
+                        follow_batch=['edge_attr', 'hyperedge_index'] if dataset._use_hyperedge else ['edge_attr'])
     samples = []
-    for data in datamodule.predict_dataloader():
+    for data in loader:
         samples.append(wrapper.example_inputs(data, export_cfg['num_sampling_steps'], export_cfg['noise_as_input']))
         if len(samples) == 2:
             break
