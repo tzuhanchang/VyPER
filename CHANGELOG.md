@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Remove `VyPER.utils.group_batch` ([#87](https://github.com/tzuhanchang/VyPER/pull/87))
 
 ### Fixed
+ - Fix `onnx` export example inputs loading ([#88](https://github.com/tzuhanchang/VyPER/pull/88))
  - Fix model loading error when resuming training from a checkpoint ([#85](https://github.com/tzuhanchang/VyPER/pull/85))
 
 
