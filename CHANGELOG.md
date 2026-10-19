@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+ - Add event classification capability ([#90](https://github.com/tzuhanchang/VyPER/pull/90))
 
 ### Changed
 
