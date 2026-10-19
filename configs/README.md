@@ -43,7 +43,7 @@ overwrites the default [training.learning_rate](#traininglearning_rate) to `0.00
     * [network.attn_feats](#networkattn_feats)
     * [network.num_attn_heads](#networknum_attn_heads)
     * [network.num_message_layers](#networknum_message_layers)
-    * [network.num_dit_blocks](#networknum_dit_blocks)
+    * [network.num_attn_blocks](#networknum_attn_blocks)
     * [network.hyperedge_feats](#networkhyperedge_feats)
     * [network.hyperedge_order](#networkhyperedge_order)
     * [network.noise_distribution](#networknoise_distribution)
@@ -184,10 +184,9 @@ This option is used only if `neutrinos` is set to be larger than 0 in [target.to
 Number of message-passing layers.
 
 
-### network.num_dit_blocks
+### network.num_attn_blocks
 
-Number of DiT blocks used in the diffusion.
-It also sets the number of class-attention blocks in the event classification head.
+Number of attention blocks: the DiT blocks used in the diffusion, and the class-attention blocks in the event classification head.
 
 This option is used only if `neutrinos` is set to be larger than 0 in [target.topology](#targettopology), or if [target.classification](#targetclassification) is provided.
 
@@ -957,6 +956,6 @@ Definitions of the event classification.
 The dataset must provide a `LABELS/CLASSIFICATION` dataset of shape `[num_events]`, holding the integer class index (`0` to `num_classes-1`) of each event.
 
 The event classification head takes the node, edge, global and neutrino (if [target.neutrinos](#targetneutrinos) is provided) embeddings from the message-passing layers, and is trained with a cross-entropy loss, weighted by [training.xi](#trainingxi).
-Its size is set by [network.attn_feats](#networkattn_feats), [network.num_attn_heads](#networknum_attn_heads) and [network.num_dit_blocks](#networknum_dit_blocks).
+Its size is set by [network.attn_feats](#networkattn_feats), [network.num_attn_heads](#networknum_attn_heads) and [network.num_attn_blocks](#networknum_attn_blocks).
 
 The predicted class probabilities are saved as `VyPER/Classification`, of shape `[num_events, num_classes]`, in the prediction output file (see [predicting.save_as](#predictingsave_as)).

@@ -75,7 +75,7 @@ def test_onnx_export(tmp_path):
     torch.manual_seed(0)
     model = VyPER(node_in_channels=7, edge_in_channels=3, global_in_channels=8, edge_out_channels=3,
                   hyperedge_out_channels=2, nu_out_channels=3, message_feats=8, attn_feats=8,
-                  num_attn_heads=2, num_message_layers=2, num_dit_blocks=1, hyperedge_feats=8,
+                  num_attn_heads=2, num_message_layers=2, num_attn_blocks=1, hyperedge_feats=8,
                   num_sampling_steps=3).eval()
     wrapper = VyPERONNX(model).eval()
 

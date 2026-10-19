@@ -86,7 +86,7 @@ def objective(trial: optuna.trial.Trial) -> float:
             hyperedge_order = CONFIGS['network']['hyperedge_order'] if _use_hyperedge else None,
             num_sampling_steps = CONFIGS['training']['num_sampling_steps'],
             num_attn_heads = CONFIGS['network']['num_attn_heads'],
-            num_dit_blocks = CONFIGS['network']['num_dit_blocks'],
+            num_attn_blocks = CONFIGS['network']['num_attn_blocks'],
             noise_distribution = CONFIGS['network'].get('noise_distribution', 'uniform'),
             optimizer = CONFIGS['training']['optimizer'],
             lr = CONFIGS['training']['learning_rate'],

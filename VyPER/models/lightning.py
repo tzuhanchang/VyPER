@@ -37,7 +37,7 @@ class VyPER(LightningModule):
         hyperedge_order: int = 3,
         num_sampling_steps: int = 50,
         num_attn_heads: int = 1,
-        num_dit_blocks: int = 4,
+        num_attn_blocks: int = 4,
         noise_distribution: Literal["gaussian", "uniform"] = "uniform",
         optimizer: str = "Adam",
         lr: float = 1e-3,
@@ -88,7 +88,7 @@ class VyPER(LightningModule):
                 d_target=self.hparams.nu_out_channels,
                 num_heads=self.hparams.num_attn_heads,
                 num_message_steps=self.hparams.num_message_layers,
-                num_dit_blocks=self.hparams.num_dit_blocks,
+                num_dit_blocks=self.hparams.num_attn_blocks,
                 noise_distribution=self.hparams.noise_distribution,
                 num_sampling_steps=self.hparams.num_sampling_steps
             )
@@ -111,7 +111,7 @@ class VyPER(LightningModule):
                 use_neutrino=self.hparams.use_diffusion,
                 d_feedforward=self.hparams.attn_feats,
                 nheads=self.hparams.num_attn_heads,
-                attn_depth=self.hparams.num_dit_blocks,
+                attn_depth=self.hparams.num_attn_blocks,
                 dropout=self.hparams.dropout,
                 activation=torch.nn.ReLU()
             )

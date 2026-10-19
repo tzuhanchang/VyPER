@@ -16,7 +16,7 @@ network:
   attn_feats:         128
   num_attn_heads:     8
   num_message_layers: 3
-  num_dit_blocks:     4
+  num_attn_blocks:    4
   hyperedge_feats:    128
   hyperedge_order:    3
   noise_distribution: uniform
