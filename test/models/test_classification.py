@@ -55,15 +55,14 @@ def _class_attention_block():
 
 
 EVENT_CLASSIFICATION_SETTINGS = {
-    'with_neutrino':    dict(use_neutrino=True,  use_edge=True),
-    'without_neutrino': dict(use_neutrino=False, use_edge=True),
-    'without_edge':     dict(use_neutrino=True,  use_edge=False),
+    'with_neutrino':    dict(use_neutrino=True),
+    'without_neutrino': dict(use_neutrino=False),
 }
 
-def _event_classification(use_neutrino, use_edge):
+def _event_classification(use_neutrino):
     from VyPER.models.classification import EventClassification
     return _fill(EventClassification(d_model=D_MODEL, d_out=3, d_feedforward=16, use_neutrino=use_neutrino,
-                                     use_edge=use_edge, nheads=2, attn_depth=2, dropout=0.)).eval()
+                                     nheads=2, attn_depth=2, dropout=0.)).eval()
 
 
 @torch.no_grad
@@ -109,7 +108,7 @@ def test_EventClassification(example_batch, expected_EventClassification_output,
 def test_EventClassification_events_are_independent(example_batch):
     from torch_geometric.data import Batch
 
-    model = _event_classification(use_neutrino=True, use_edge=True)
+    model = _event_classification(use_neutrino=True)
     events = example_batch.to_data_list()
 
     # Each event in a batch is classified as if it were alone, whatever the batch order

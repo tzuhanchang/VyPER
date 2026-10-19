@@ -95,7 +95,8 @@ class EventClassification(nn.Module):
     r"""Event classification head.
 
     Every node, edge and neutrino embedding of an event becomes a token
-    (with a learned type embedding). An event token, initialised from the
+    (with a learned type embedding); each event has one edge token per
+    directed edge. An event token, initialised from the
     global embedding :obj:`u`, attends over these tokens through a stack of
     :class:`ClassAttentionBlock` and is finally projected to class logits.
 
@@ -104,8 +105,6 @@ class EventClassification(nn.Module):
         d_out (int): number of classes.
         d_feedforward (int): token dimension and feed-forward hidden dimension.
         use_neutrino (bool): include neutrino context tokens.
-        use_edge (bool, optional): include edge tokens. Each event has one token
-            per directed edge. (default: :obj:`True`)
         nheads (int, optional): number of attention heads. (default: 1)
         attn_depth (int, optional): number of class-attention blocks. (default: 1)
         dropout (float, optional): dropout probability. (default: 0.01)
@@ -119,7 +118,6 @@ class EventClassification(nn.Module):
             d_out: int,
             d_feedforward: int,
             use_neutrino: bool,
-            use_edge: bool = True,
             nheads: int = 1,
             attn_depth: int = 1,
             dropout: float = 0.01,
@@ -128,11 +126,10 @@ class EventClassification(nn.Module):
         super().__init__()
 
         self._use_neutrino = use_neutrino
-        self._use_edge = use_edge
 
         # Token projections, one per object type, plus a learned type embedding
         self.node_proj = nn.Linear(d_model, d_feedforward)
-        self.edge_proj = nn.Linear(d_model, d_feedforward) if use_edge else None
+        self.edge_proj = nn.Linear(d_model, d_feedforward)
         self.nu_proj   = nn.Linear(d_model, d_feedforward) if use_neutrino else None
         self.type_embed = nn.Embedding(3, d_feedforward)
 
@@ -168,11 +165,9 @@ class EventClassification(nn.Module):
         :rtype: :class:`Tensor` of shape [B, `d_out`]
         """
         # Build the object tokens
-        tokens = [self.node_proj(x) + self.type_embed.weight[self.NODE]]
-        index  = [batch]
-        if self._use_edge:
-            tokens.append(self.edge_proj(edge_attr) + self.type_embed.weight[self.EDGE])
-            index.append(batch[edge_index[0]])
+        tokens = [self.node_proj(x) + self.type_embed.weight[self.NODE],
+                  self.edge_proj(edge_attr) + self.type_embed.weight[self.EDGE]]
+        index  = [batch, batch[edge_index[0]]]
         if self._use_neutrino:
             tokens.append(self.nu_proj(nu_ctx) + self.type_embed.weight[self.NEUTRINO])
             index.append(nu_batch)
