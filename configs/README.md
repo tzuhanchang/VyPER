@@ -57,6 +57,7 @@ overwrites the default [training.learning_rate](#traininglearning_rate) to `0.00
     * [training.loss_reduction](#trainingloss_reduction)
     * [training.alpha](#trainingalpha)
     * [training.eta](#trainingeta)
+    * [training.xi](#trainingxi)
     * [training.dropout](#trainingdropout)
     * [training.gradient_clip](#traininggradient_clip)
     * [training.epochs](#trainingepochs)
@@ -165,16 +166,17 @@ Message embedding size during message-passing operation.
 
 ### network.attn_feats
 
-Embedding length of the DiT block(s).
+Embedding length of the DiT block(s) and of the event classification head.
 
-This option is used only if `neutrinos` is set to be larger than 0 in [target.topology](#targettopology).
+This option is used only if `neutrinos` is set to be larger than 0 in [target.topology](#targettopology), or if [target.classification](#targetclassification) is provided.
 
 
 ### network.num_attn_heads
 
 Number of attention heads in the attention layers.
+It must divide [network.attn_feats](#networkattn_feats).
 
-This option is used only if `neutrinos` is set to be larger than 0 in [target.topology](#targettopology).
+This option is used only if `neutrinos` is set to be larger than 0 in [target.topology](#targettopology), or if [target.classification](#targetclassification) is provided.
 
 
 ### network.num_message_layers
@@ -185,8 +187,9 @@ Number of message-passing layers.
 ### network.num_dit_blocks
 
 Number of DiT blocks used in the diffusion.
+It also sets the number of class-attention blocks in the event classification head.
 
-This option is used only if `neutrinos` is set to be larger than 0 in [target.topology](#targettopology).
+This option is used only if `neutrinos` is set to be larger than 0 in [target.topology](#targettopology), or if [target.classification](#targetclassification) is provided.
 
 
 ### network.hyperedge_feats
@@ -255,14 +258,23 @@ Supported methods:
 
 Mixing fraction, $\alpha$, of edge and hyperedge loss.
 
-The final loss is computed according to: $\mathcal{L} = \eta\mathcal{L}_d+(1-\eta)\[ \alpha \mathcal{L}_h + (1-\alpha)\mathcal{L}_e \]$, where $\mathcal{L}_d$ is the diffusion loss, $\mathcal{L}_h$ is the hyperedge loss and $\mathcal{L}_e$ is the edge loss.
+The final loss is computed according to: $\mathcal{L} = \xi\mathcal{L}_c+(1-\xi)\left(\eta\mathcal{L}_d+(1-\eta)\[ \alpha \mathcal{L}_h + (1-\alpha)\mathcal{L}_e \]\right)$, where $\mathcal{L}_c$ is the event classification loss, $\mathcal{L}_d$ is the diffusion loss, $\mathcal{L}_h$ is the hyperedge loss and $\mathcal{L}_e$ is the edge loss.
 
 
 ### training.eta
 
 Mixing fraction, $\eta$, of diffusion-to-reconstruction loss.
 
-The final loss is computed according to: $\mathcal{L} = \eta\mathcal{L}_d+(1-\eta)\[ \alpha \mathcal{L}_h + (1-\alpha)\mathcal{L}_e \]$, where $\mathcal{L}_d$ is the diffusion loss, $\mathcal{L}_h$ is the hyperedge loss and $\mathcal{L}_e$ is the edge loss.
+The final loss is computed according to: $\mathcal{L} = \xi\mathcal{L}_c+(1-\xi)\left(\eta\mathcal{L}_d+(1-\eta)\[ \alpha \mathcal{L}_h + (1-\alpha)\mathcal{L}_e \]\right)$, where $\mathcal{L}_c$ is the event classification loss, $\mathcal{L}_d$ is the diffusion loss, $\mathcal{L}_h$ is the hyperedge loss and $\mathcal{L}_e$ is the edge loss.
+
+
+### training.xi
+
+Mixing fraction, $\xi$, of event classification-to-reconstruction loss.
+
+The final loss is computed according to: $\mathcal{L} = \xi\mathcal{L}_c+(1-\xi)\left(\eta\mathcal{L}_d+(1-\eta)\[ \alpha \mathcal{L}_h + (1-\alpha)\mathcal{L}_e \]\right)$, where $\mathcal{L}_c$ is the event classification loss, $\mathcal{L}_d$ is the diffusion loss, $\mathcal{L}_h$ is the hyperedge loss and $\mathcal{L}_e$ is the edge loss.
+
+This option is used only if [target.classification](#targetclassification) is provided, and it is then required.
 
 
 ### training.dropout
@@ -363,6 +375,7 @@ Available metrics are:
  - `accuracy/dR_mean`
  - `accuracy/edge_channel_<class_index>`
  - `accuracy/hyperedge_channel_<class_index>`
+ - `accuracy/classification_auroc` (available only if [target.classification](#targetclassification) is provided)
 
 <class_index> is the index of the class in the multiclass classification.
 Class index of 0 always represents the combinatorial background.
@@ -458,7 +471,7 @@ python -m VyPER.onnx --config-name=<ConfigFile>
 An example dataset is required as [`datasets.predict_set`](#datasetspredict_set).
 
 The exported model takes the inputs of the enabled modules (`x`, `edge_index`, `edge_attr`, `u`, `batch`, `x_fw_mask`, `edge_fw_mask`, `hyperedge_index` and `hyperedge_index_batch`), together with `num_sampling_steps` and, optionally, `noise`.
-Its outputs are `edge_attr_out` (logits), `nu_out` (before the `reverse_transforms` in [target.neutrinos](#targetneutrinos)), `nu_batch` and `hyperedge_out` (logits).
+Its outputs are `edge_attr_out` (logits), `nu_out` (before the `reverse_transforms` in [target.neutrinos](#targetneutrinos)), `nu_batch`, `hyperedge_out` (logits) and `u_out` (event classification logits, see [target.classification](#targetclassification)).
 Settings needed for inference are stored in the model metadata, e.g. `vyper.num_sampling_steps`, `vyper.noise_distribution` and `vyper.nu_reverse_transforms`.
 
 
@@ -583,6 +596,8 @@ Available callback metrics:
  - `accuracy/edge_channel_*`: The validation edge accuracy of the channel `*`.
  - `accuracy/hyperedge_channel_*`: The validation hyperedge accuracy of the channel `*`.
  - `accuracy/dR_mean`: The validation $\Delta R$ between truth and reconstructed neutrinos.
+ - `loss/validation_classification_loss`: The event classification validation loss (available only if [target.classification](#targetclassification) is provided).
+ - `accuracy/classification_auroc`: The validation multiclass AUROC of the event classification (available only if [target.classification](#targetclassification) is provided).
 
 ### tune.directions
 
@@ -635,6 +650,7 @@ This section will use the sample $t\bar{t}$ dilepton final-state dataset as an e
     * [target.edge](#targetedge)
     * [target.neutrinos [Optional]](#targetneutrinos)
     * [target.hyperedge [Optional]](#targethyperedge)
+    * [target.classification [Optional]](#targetclassification)
 
 
 ## input
@@ -921,3 +937,26 @@ target:
 Definitions of target hyperedges.
 
 Each target hyperedge is represented as a list containing three or more nodes. `top` is the class name; currently, only one hyperedge class is supported.
+
+
+### target.classification
+
+This is an optional block, if it is not provided, event classification module will not be used.
+
+```yaml
+target:
+  ...
+  classification:
+    num_classes: 2
+  ...
+```
+Definitions of the event classification.
+
+`num_classes`: number of event classes.
+
+The dataset must provide a `LABELS/CLASSIFICATION` dataset of shape `[num_events]`, holding the integer class index (`0` to `num_classes-1`) of each event.
+
+The event classification head takes the node, edge, global and neutrino (if [target.neutrinos](#targetneutrinos) is provided) embeddings from the message-passing layers, and is trained with a cross-entropy loss, weighted by [training.xi](#trainingxi).
+Its size is set by [network.attn_feats](#networkattn_feats), [network.num_attn_heads](#networknum_attn_heads) and [network.num_dit_blocks](#networknum_dit_blocks).
+
+The predicted class probabilities are saved as `VyPER/Classification`, of shape `[num_events, num_classes]`, in the prediction output file (see [predicting.save_as](#predictingsave_as)).

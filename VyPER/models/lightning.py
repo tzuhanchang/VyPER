@@ -70,6 +70,17 @@ class VyPER(LightningModule):
             use_neutrino=self.hparams.use_diffusion
         )
 
+        if self.hparams.use_edge:
+            self.Edge = EdgeBlock(
+                d_in=self.hparams.message_feats*self.hparams.num_message_layers,
+                d_out=self.hparams.edge_out_channels,
+                d_hidden=self.hparams.message_feats,
+                depth=2,
+                dropout=self.hparams.dropout
+            )
+            self.metric_edge = MultilabelAccuracy(num_labels=self.hparams.edge_out_channels,
+                                                  average='none', ignore_index=0)
+
         if self.hparams.use_diffusion:
             self.NeutrinoDiffusion = NeutrinoDiffusion(
                 d_ctx=self.hparams.message_feats,
@@ -92,17 +103,6 @@ class VyPER(LightningModule):
             )
             self.metric_hyperedge = MultilabelAccuracy(num_labels=self.hparams.hyperedge_out_channels,
                                                        average='none', ignore_index=0)
-
-        if self.hparams.use_edge:
-            self.Edge = EdgeBlock(
-                d_in=self.hparams.message_feats*self.hparams.num_message_layers,
-                d_out=self.hparams.edge_out_channels,
-                d_hidden=self.hparams.message_feats,
-                depth=2,
-                dropout=self.hparams.dropout
-            )
-            self.metric_edge = MultilabelAccuracy(num_labels=self.hparams.edge_out_channels,
-                                                  average='none', ignore_index=0)
 
         if self.hparams.use_classification:
             self.Event = EventClassification(
@@ -158,15 +158,6 @@ class VyPER(LightningModule):
         else:
             edge_attr_out = None
         return [edge_attr_out, nu_out, nu_batch, hyperedge_out, hyperedge_batch, u_out]
-
-    def on_load_checkpoint(self, checkpoint):
-        # Checkpoints made before `EdgeBlock` was introduced store the final edge
-        # layer inside `MPNNs`; rename it so these checkpoints can still be loaded
-        state_dict = checkpoint['state_dict']
-        for key in list(state_dict.keys()):
-            if key.startswith('MessagePassing.FinalEdgeLayer.'):
-                new_key = 'Edge.mlp.' + key[len('MessagePassing.FinalEdgeLayer.'):]
-                state_dict[new_key] = state_dict.pop(key)
 
     def configure_optimizers(self):
         if str(self.hparams.optimizer).lower() == 'adam':

@@ -48,11 +48,6 @@ class VyPERONNX(torch.nn.Module):
         self.use_diffusion = bool(model.hparams.use_diffusion)
         self.use_hyperedge = bool(model.hparams.use_hyperedge)
         self.use_classification = bool(model.hparams.get('use_classification', False))
-        if self.use_classification:
-            # `EventClassification` pads tokens with `to_dense_batch` and uses
-            # `nn.MultiheadAttention`, neither of which `torch.export` supports with
-            # data-dependent sizes (see `DiTBlock._attention`).
-            raise NotImplementedError("ONNX export of models with event classification is not supported yet.")
 
     @property
     def output_names(self) -> List[str]:

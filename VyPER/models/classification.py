@@ -1,15 +1,22 @@
+import math
 import torch
 
 from torch import nn, Tensor
-from torch_geometric.utils import to_dense_batch
+from torch.nn.functional import linear, dropout
+from torch_geometric.utils import scatter
 from typing import Optional
 
 from .mlp import Mlp
+from VyPER.utils import softmax
 
 
 class ClassAttentionBlock(nn.Module):
     r"""Class-attention block: a single event token attends over the
     object tokens of its event and only the event token is updated.
+
+    Tokens are not padded into a dense batch. As each event has a single
+    query, the attention is computed per object token and normalised
+    within each event, which supports ONNX export with data-dependent sizes.
 
     Args:
         d_embed (int): embedding dimension.
@@ -39,16 +46,47 @@ class ClassAttentionBlock(nn.Module):
                        activation=activation,
                        dropout=dropout)
 
-    def forward(self, q: Tensor, kv: Tensor, key_padding_mask: Tensor) -> Tensor:
+        # Supported by `_attention`
+        assert self.attn._qkv_same_embed_dim and self.attn.bias_k is None \
+            and not self.attn.add_zero_attn, \
+            "`ClassAttentionBlock` does not support `kdim`, `vdim`, `add_bias_kv` or `add_zero_attn`."
+
+    def _attention(self, q: Tensor, kv: Tensor, index: Tensor) -> Tensor:
+        r"""Attention of each event token over the object tokens of its event,
+        with the parameters of :obj:`self.attn`.
+
+        Args:
+            q (torch.Tensor): event tokens of shape [B, `d_embed`].
+            kv (torch.Tensor): object tokens of shape [T, `d_embed`].
+            index (torch.Tensor): event of each object token, of shape [T].
+
+        :rtype: :class:`torch.Tensor` of shape [B, `d_embed`]
+        """
+        mha = self.attn
+        B, E = q.shape
+        H = mha.num_heads
+        w, b = mha.in_proj_weight, mha.in_proj_bias
+
+        q = linear(q, w[:E], b[:E] if b is not None else None).reshape(B, H, E // H)
+        k = linear(kv, w[E:2*E], b[E:2*E] if b is not None else None).reshape(-1, H, E // H)
+        v = linear(kv, w[2*E:], b[2*E:] if b is not None else None).reshape(-1, H, E // H)
+
+        # Scaled dot-product of each object token with the event token, [T, H]
+        scores = (q.index_select(0, index) * k).sum(dim=-1) * (1.0 / math.sqrt(E // H))
+        weights = softmax(scores, index, dim_size=B)
+        if self.training and mha.dropout > 0.:
+            weights = dropout(weights, p=mha.dropout)
+        out = scatter(weights.unsqueeze(-1) * v, index, dim=0, dim_size=B, reduce='sum')
+        return mha.out_proj(out.reshape(B, E))
+
+    def forward(self, q: Tensor, kv: Tensor, index: Tensor) -> Tensor:
         r"""
         Args:
-            q (torch.Tensor): event tokens of shape [B, 1, `d_embed`].
-            kv (torch.Tensor): object tokens of shape [B, L, `d_embed`].
-            key_padding_mask (torch.Tensor): boolean mask of shape [B, L],
-                :obj:`True` marks padded positions, which are ignored as attention keys.
+            q (torch.Tensor): event tokens of shape [B, `d_embed`].
+            kv (torch.Tensor): object tokens of shape [T, `d_embed`].
+            index (torch.Tensor): event of each object token, of shape [T].
         """
-        kv = self.norm_kv(kv)
-        q = q + self.attn(self.norm_q(q), kv, kv, key_padding_mask=key_padding_mask, need_weights=False)[0]
+        q = q + self._attention(self.norm_q(q), self.norm_kv(kv), index)
         q = q + self.mlp(self.norm_mlp(q))
         return q
 
@@ -129,8 +167,6 @@ class EventClassification(nn.Module):
 
         :rtype: :class:`Tensor` of shape [B, `d_out`]
         """
-        num_graphs = u.size(0)
-
         # Build the object tokens
         tokens = [self.node_proj(x) + self.type_embed.weight[self.NODE]]
         index  = [batch]
@@ -143,14 +179,9 @@ class EventClassification(nn.Module):
         tokens = torch.cat(tokens, dim=0)
         index  = torch.cat(index, dim=0)
 
-        # Pad tokens into [B, L, d]; `to_dense_batch` requires a sorted index
-        index, perm = torch.sort(index, stable=True)
-        kv, is_real = to_dense_batch(tokens[perm], index, batch_size=num_graphs)
-        key_padding_mask = ~is_real
-
         # Event token attends over the object tokens
-        q = self.query_proj(u).unsqueeze(1)
+        q = self.query_proj(u)
         for block in self.blocks:
-            q = block(q, kv, key_padding_mask)
+            q = block(q, tokens, index)
 
-        return self.out_proj(self.norm_out(q.squeeze(1)))
+        return self.out_proj(self.norm_out(q))

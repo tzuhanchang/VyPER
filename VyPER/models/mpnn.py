@@ -239,8 +239,6 @@ class MPNNs(nn.Module):
         for i in range(self.num_layers):
             for layer in getattr(self, 'MessagePassing' + str(i)).children():
                 layer.reset_parameters()
-        if self._use_edge:
-            self.FinalEdgeLayer.reset_parameters()
 
     def forward(self, x, edge_index, edge_attr, u, batch,
                 lep_node: Optional[torch.tensor]=None,
