@@ -29,13 +29,13 @@ ______________________________________________________________________
 ## Installation
 
 > [!IMPORTANT]
-> Please use the [latest release](https://github.com/tzuhanchang/VyPER/releases/latest) (currently **v1.0.0**) rather than the `main` branch.
+> Please use the [latest release](https://github.com/tzuhanchang/VyPER/releases/latest) (currently **v1.1.0**) rather than the `main` branch.
 > `main` is under active development and may contain untested or breaking changes.
 
 Clone the repository at the latest release tag:
 
 ```bash
-git clone --branch v1.0.0 https://github.com/tzuhanchang/VyPER.git
+git clone --branch v1.1.0 https://github.com/tzuhanchang/VyPER.git
 ```
 
 Then create the conda environment using the file that matches your platform:
