@@ -955,7 +955,7 @@ Definitions of the event classification.
 
 The dataset must provide a `LABELS/CLASSIFICATION` dataset of shape `[num_events]`, holding the integer class index (`0` to `num_classes-1`) of each event.
 
-The event classification head takes the node, edge, global and neutrino (if [target.neutrinos](#targetneutrinos) is provided) embeddings from the message-passing layers, and is trained with a cross-entropy loss, weighted by [training.xi](#trainingxi).
+The event classification head takes the node, edge, global and neutrino (if [target.neutrinos](#targetneutrinos) is provided) embeddings from the message-passing layers, and the latent hyperedges (if [target.hyperedge](#targethyperedge) is provided), and is trained with a cross-entropy loss, weighted by [training.xi](#trainingxi).
 Its size is set by [network.attn_feats](#networkattn_feats), [network.num_attn_heads](#networknum_attn_heads) and [network.num_attn_blocks](#networknum_attn_blocks).
 
 The predicted class probabilities are saved as `VyPER/Classification`, of shape `[num_events, num_classes]`, in the prediction output file (see [predicting.save_as](#predictingsave_as)).

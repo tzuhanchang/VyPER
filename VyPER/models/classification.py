@@ -94,9 +94,9 @@ class ClassAttentionBlock(nn.Module):
 class EventClassification(nn.Module):
     r"""Event classification head.
 
-    Every node, edge and neutrino embedding of an event becomes a token
-    (with a learned type embedding); each event has one edge token per
-    directed edge. An event token, initialised from the
+    Every node, edge, neutrino and hyperedge embedding of an event becomes
+    a token (with a learned type embedding); each event has one edge token
+    per directed edge. An event token, initialised from the
     global embedding :obj:`u`, attends over these tokens through a stack of
     :class:`ClassAttentionBlock` and is finally projected to class logits.
 
@@ -105,12 +105,16 @@ class EventClassification(nn.Module):
         d_out (int): number of classes.
         d_feedforward (int): token dimension and feed-forward hidden dimension.
         use_neutrino (bool): include neutrino context tokens.
+        use_hyperedge (bool, optional): include hyperedge tokens, from the latent
+            hyperedges of :class:`HyperedgeBlock` (:obj:`return_latent=True`). (default: :obj:`False`)
+        d_hyperedge (int, optional): dimension of the latent hyperedges. Required
+            if :obj:`use_hyperedge` is :obj:`True`. (default: :obj:`None`)
         nheads (int, optional): number of attention heads. (default: 1)
         attn_depth (int, optional): number of class-attention blocks. (default: 1)
         dropout (float, optional): dropout probability. (default: 0.01)
         activation (callable, optional): feed-forward activation. (default: :obj:`nn.ReLU()`)
     """
-    NODE, EDGE, NEUTRINO = 0, 1, 2
+    NODE, EDGE, NEUTRINO, HYPEREDGE = 0, 1, 2, 3
 
     def __init__(
             self,
@@ -118,6 +122,8 @@ class EventClassification(nn.Module):
             d_out: int,
             d_feedforward: int,
             use_neutrino: bool,
+            use_hyperedge: bool = False,
+            d_hyperedge: Optional[int] = None,
             nheads: int = 1,
             attn_depth: int = 1,
             dropout: float = 0.01,
@@ -126,12 +132,16 @@ class EventClassification(nn.Module):
         super().__init__()
 
         self._use_neutrino = use_neutrino
+        self._use_hyperedge = use_hyperedge
+        if use_hyperedge:
+            assert d_hyperedge is not None, "`d_hyperedge` is required if `use_hyperedge` is True."
 
         # Token projections, one per object type, plus a learned type embedding
         self.node_proj = nn.Linear(d_model, d_feedforward)
         self.edge_proj = nn.Linear(d_model, d_feedforward)
         self.nu_proj   = nn.Linear(d_model, d_feedforward) if use_neutrino else None
-        self.type_embed = nn.Embedding(3, d_feedforward)
+        self.hyper_proj = nn.Linear(d_hyperedge, d_feedforward) if use_hyperedge else None
+        self.type_embed = nn.Embedding(4 if use_hyperedge else 3, d_feedforward)
 
         # Event token, initialised from the global embedding
         self.query_proj = nn.Linear(d_model, d_feedforward)
@@ -150,7 +160,8 @@ class EventClassification(nn.Module):
                             dropout=dropout)
 
     def forward(self, x: Tensor, edge_index: Tensor, edge_attr: Tensor, u: Tensor, batch: Tensor,
-                nu_ctx: Optional[Tensor] = None, nu_batch: Optional[Tensor] = None) -> Tensor:
+                nu_ctx: Optional[Tensor] = None, nu_batch: Optional[Tensor] = None,
+                hyperedge_attr: Optional[Tensor] = None, hyperedge_batch: Optional[Tensor] = None) -> Tensor:
         r"""
         Args:
             x (torch.Tensor): node embeddings of shape [N, `d_model`].
@@ -161,6 +172,8 @@ class EventClassification(nn.Module):
             nu_ctx (torch.Tensor, optional): neutrino context of shape [N_nu, `d_model`].
             nu_batch (torch.Tensor, optional): neutrino to event assignment of shape [N_nu].
                 Events without neutrinos simply contribute no neutrino tokens.
+            hyperedge_attr (torch.Tensor, optional): latent hyperedges of shape [N_h, `d_hyperedge`].
+            hyperedge_batch (torch.Tensor, optional): hyperedge to event assignment of shape [N_h].
 
         :rtype: :class:`Tensor` of shape [B, `d_out`]
         """
@@ -171,6 +184,9 @@ class EventClassification(nn.Module):
         if self._use_neutrino:
             tokens.append(self.nu_proj(nu_ctx) + self.type_embed.weight[self.NEUTRINO])
             index.append(nu_batch)
+        if self._use_hyperedge:
+            tokens.append(self.hyper_proj(hyperedge_attr) + self.type_embed.weight[self.HYPEREDGE])
+            index.append(hyperedge_batch)
         tokens = torch.cat(tokens, dim=0)
         index  = torch.cat(index, dim=0)
 

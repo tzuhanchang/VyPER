@@ -99,6 +99,7 @@ class VyPER(LightningModule):
                 node_out_channels=self.hparams.hyperedge_out_channels,
                 global_in_channels=self.hparams.message_feats*self.hparams.num_message_layers,
                 message_feats=self.hparams.hyperedge_feats,
+                return_latent=self.hparams.use_classification,
                 dropout=self.hparams.dropout
             )
             self.metric_hyperedge = MultilabelAccuracy(num_labels=self.hparams.hyperedge_out_channels,
@@ -109,6 +110,8 @@ class VyPER(LightningModule):
                 d_model=self.hparams.message_feats*self.hparams.num_message_layers,
                 d_out=self.hparams.global_out_channels,
                 use_neutrino=self.hparams.use_diffusion,
+                use_hyperedge=self.hparams.use_hyperedge,
+                d_hyperedge=self.hparams.hyperedge_feats if self.hparams.use_hyperedge else None,
                 d_feedforward=self.hparams.attn_feats,
                 nheads=self.hparams.num_attn_heads,
                 attn_depth=self.hparams.num_attn_blocks,
@@ -144,12 +147,16 @@ class VyPER(LightningModule):
             nu_out, nu_batch = None, None
         # Hyperedge step
         if hyperedge_index is not None and hyperedge_index_batch is not None:
-            hyperedge_out, hyperedge_batch = self.Hyperedge(x_out, u_out, batch, hyperedge_index, hyperedge_index_batch, self.hparams.hyperedge_order)
+            hyperedge = self.Hyperedge(x_out, u_out, batch, hyperedge_index, hyperedge_index_batch, self.hparams.hyperedge_order)
+            hyperedge_out, hyperedge_batch = hyperedge[0], hyperedge[-1]
+            # Latent hyperedges, used as tokens by the classification step
+            hyperedge_latent = hyperedge[1] if self.Hyperedge.return_latent else None
         else:
-            hyperedge_out, hyperedge_batch = None, None
+            hyperedge_out, hyperedge_latent, hyperedge_batch = None, None, None
         # Classification step
         if self.hparams.use_classification:
-            u_out = self.Event(x_out, edge_index, edge_attr_out, u_out, batch, message_out[3], nu_batch)
+            u_out = self.Event(x_out, edge_index, edge_attr_out, u_out, batch, message_out[3], nu_batch,
+                               hyperedge_latent, hyperedge_batch)
         else:
             u_out = None
         # Edge step
