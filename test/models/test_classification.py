@@ -6,6 +6,10 @@ from pathlib import Path
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 D_MODEL = 8
 
+# The untransformed features in `batched_graphs.pt` give embeddings up to O(10^3), so the float32
+# outputs differ between CPUs and builds by up to ~3e-5 relative (measured against float64).
+RTOL, ATOL = 1e-4, 1e-4
+
 @pytest.fixture
 def example_batch():
     return torch.load(FIXTURES / "batched_graphs.pt", weights_only=False)
@@ -69,7 +73,7 @@ def test_ClassAttentionBlock(example_batch, expected_ClassAttentionBlock_output)
 
     out = model(emb['u'], emb['x'], emb['batch'])
     assert out.shape == (example_batch.num_graphs, D_MODEL)
-    assert torch.allclose(out, expected_ClassAttentionBlock_output, atol=1e-6)
+    torch.testing.assert_close(out, expected_ClassAttentionBlock_output, rtol=RTOL, atol=ATOL)
 
 
 @torch.no_grad
@@ -87,7 +91,7 @@ def test_ClassAttentionBlock_matches_MultiheadAttention(example_batch):
     ref = q + attn
     ref = ref + model.mlp(model.norm_mlp(ref))
 
-    assert torch.allclose(model(q, kv, index), ref, atol=1e-6)
+    torch.testing.assert_close(model(q, kv, index), ref, rtol=RTOL, atol=ATOL)
 
 
 @pytest.mark.parametrize('setting', EVENT_CLASSIFICATION_SETTINGS)
@@ -98,7 +102,7 @@ def test_EventClassification(example_batch, expected_EventClassification_output,
 
     out = model(**emb)
     assert out.shape == (example_batch.num_graphs, 3)
-    assert torch.allclose(out, expected_EventClassification_output[setting], atol=1e-6)
+    torch.testing.assert_close(out, expected_EventClassification_output[setting], rtol=RTOL, atol=ATOL)
 
 
 @torch.no_grad
@@ -111,5 +115,5 @@ def test_EventClassification_events_are_independent(example_batch):
     # Each event in a batch is classified as if it were alone, whatever the batch order
     batched = model(**_embeddings(Batch.from_data_list([events[1], events[0], events[1]])))
     alone = torch.cat([model(**_embeddings(Batch.from_data_list([e]))) for e in (events[1], events[0], events[1])])
-    assert torch.allclose(batched, alone, atol=1e-6)
+    torch.testing.assert_close(batched, alone, rtol=RTOL, atol=ATOL)
     assert not torch.allclose(batched[0], batched[1])
