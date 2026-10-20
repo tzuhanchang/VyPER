@@ -43,13 +43,16 @@ def objective(trial: optuna.trial.Trial) -> float:
             else:
                 raise NotImplementedError('Hyperparameter dtype not supported.')
 
+    global GRAPHS_RELOADED
+    force_reload = bool(CONFIGS['datasets']['force_reload']) and not GRAPHS_RELOADED
+
     datamodule = VyPERDataModule(
         config = CONFIG_PATH,
         train_set = CONFIGS['datasets']['tune_set'],
         val_set = None,
         predict_set = None,
         event_filter = CONFIGS['datasets']['event_filter'],
-        force_reload = False,
+        force_reload = force_reload,
         batch_size = CONFIGS['training']['batch_size'],
         percent_train_samples = CONFIGS['datasets']['train_val_split'],
         drop_last = CONFIGS['datasets']['drop_last'],
@@ -60,12 +63,14 @@ def objective(trial: optuna.trial.Trial) -> float:
     _use_edge      = 'edge' in CONFIGS['target'].keys()
     _use_hyperedge = 'hyperedge' in CONFIGS['target'].keys()
     _use_diffusion = 'neutrinos' in CONFIGS['target'].keys()
+    _use_classification = 'classification' in CONFIGS['target'].keys()
 
     try:
         model = VyPER(
             node_in_channels = len(CONFIGS['input']['node_features'])+1,
             edge_in_channels = len(CONFIGS['input']['edge_features']),
             global_in_channels = len(CONFIGS['input']['global_features']),
+            global_out_channels = CONFIGS['target']['classification']['num_classes'] if _use_classification else None,
             edge_out_channels = len(CONFIGS['target']['edge'])+1 if _use_edge else 0,
             hyperedge_out_channels = len(CONFIGS['target']['hyperedge'])+1 if _use_hyperedge else None,
             nu_out_channels = len(CONFIGS['target']['neutrinos']['features']) if _use_diffusion else None,
@@ -76,17 +81,20 @@ def objective(trial: optuna.trial.Trial) -> float:
             use_edge = _use_edge,
             use_hyperedge = _use_hyperedge,
             use_diffusion = _use_diffusion,
+            use_classification = _use_classification,
             hyperedge_feats = CONFIGS['network']['hyperedge_feats'] if _use_hyperedge else None,
             hyperedge_order = CONFIGS['network']['hyperedge_order'] if _use_hyperedge else None,
             num_sampling_steps = CONFIGS['training']['num_sampling_steps'],
             num_attn_heads = CONFIGS['network']['num_attn_heads'],
-            num_dit_blocks = CONFIGS['network']['num_dit_blocks'],
+            num_attn_blocks = CONFIGS['network']['num_attn_blocks'],
+            noise_distribution = CONFIGS['network'].get('noise_distribution', 'uniform'),
             optimizer = CONFIGS['training']['optimizer'],
             lr = CONFIGS['training']['learning_rate'],
             weight_decay = CONFIGS['training']['weight_decay'],
             momentum = CONFIGS['training']['momentum'],
             alpha = CONFIGS['training']['alpha'],
             eta = CONFIGS['training']['eta'],
+            xi = CONFIGS['training']['xi'] if _use_classification else 0.,
             reduction = CONFIGS['training']['loss_reduction']
         )
 
@@ -103,6 +111,7 @@ def objective(trial: optuna.trial.Trial) -> float:
         )
 
         trainer.fit(model, datamodule=datamodule)
+        GRAPHS_RELOADED = True
 
     except Exception as e:
         print(f"Trial {trial.number} failed: {str(e)}")
@@ -117,9 +126,11 @@ def objective(trial: optuna.trial.Trial) -> float:
 def Tune(cfg : DictConfig) -> None:
     global CONFIG_PATH
     global CONFIGS
+    global GRAPHS_RELOADED
 
     CONFIG_PATH = osp.join(hydra.utils.get_original_cwd(), f'configs/{HydraConfig.get().job.config_name}.yaml')
     CONFIGS = cfg
+    GRAPHS_RELOADED = False
 
     study = optuna.create_study(
         storage        = CONFIGS['tune']['sqlite'],

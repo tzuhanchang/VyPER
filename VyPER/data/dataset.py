@@ -130,11 +130,15 @@ class VyPERDataset(Dataset):
         else:
             assert self.topo_max_num_hyperedges == 0
 
+        # Read classificaation settings
+        self._use_classification = True if 'classification' in config['target'].keys() else False
+
         # Get input channel size
         self.node_in_channels = len(config['input']['node_features']) + 1
         self.edge_in_channels = len(config['input']['edge_features'])
         self.glob_in_channels = len(config['input']['global_features'])
         self.nu_out_channels  = len(config['target']['neutrinos']['features']) if self._use_diffusion else None
+        self.glob_out_channels = config['target']['classification']['num_classes'] if self._use_classification else self.glob_in_channels
 
         # Open the HDF5 file for this dataset instance
         self.file = h5py.File(self.root, 'r')
@@ -357,6 +361,10 @@ class VyPERDataset(Dataset):
         edge_fw_mask[edge_fw_mask_loc] = 1
         return x_fw_mask, edge_fw_mask
 
+    def build_classification_target(self, LABELS: h5py._hl.group.Group, index: int) -> Tensor:
+        return torch.tensor((LABELS['CLASSIFICATION'][index]),
+                            dtype=torch.int64)
+
     def processing(self, index):
         x = self.build_node_attr(self.file['INPUTS'],index)
         edge_index, edge_attr = self.build_edge_attr(x)
@@ -398,13 +406,18 @@ class VyPERDataset(Dataset):
                 edge_attr_t = self.build_edge_target(edge_cantor, edge_index)
             else:
                 edge_attr_t = None
+            if self._use_classification:
+                u_t = self.build_classification_target(self.file['LABELS'],index)
+            else:
+                u_t = None
             data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, u=u,
                         edge_attr_t=edge_attr_t, neutrino_t=neutrino_t,
                         x_fw_mask=x_fw_mask, edge_fw_mask=edge_fw_mask,
                         hyperedge_index=hyperedge_index, hyperedge_attr_t=hyperedge_attr_t,
                         topo_max_num_edges=torch.tensor([[self.topo_max_num_edges]],dtype=torch.float32),
                         topo_max_num_hyperedges=torch.tensor([[self.topo_max_num_hyperedges]],dtype=torch.float32),
-                        topo_num_neutrinos=torch.tensor([[self.topo_num_neutrinos]],dtype=torch.float32))
+                        topo_num_neutrinos=torch.tensor([[self.topo_num_neutrinos]],dtype=torch.float32),
+                        u_t=u_t)
 
         data = self.transform(data)
         return data

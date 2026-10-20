@@ -32,8 +32,9 @@ class VyPERONNX(torch.nn.Module):
     r"""A wrapper of a trained VyPER model, which defines the inputs and
     outputs of the exported ONNX model. The inputs are those of the VyPER
     model, plus `num_sampling_steps` and `noise` (optional). The outputs are
-    `edge_attr_out` (logits), `nu_out` (before `reverse_transforms`), `nu_batch`
-    and `hyperedge_out` (logits). Only those of the enabled modules are included.
+    `edge_attr_out` (logits), `nu_out` (before `reverse_transforms`), `nu_batch`,
+    `hyperedge_out` (logits) and `u_out` (event classification logits). Only those
+    of the enabled modules are included.
 
     Args:
         model (VyPER): the trained model.
@@ -46,23 +47,26 @@ class VyPERONNX(torch.nn.Module):
         self.use_edge = bool(model.hparams.use_edge)
         self.use_diffusion = bool(model.hparams.use_diffusion)
         self.use_hyperedge = bool(model.hparams.use_hyperedge)
+        self.use_classification = bool(model.hparams.get('use_classification', False))
 
     @property
     def output_names(self) -> List[str]:
         return (['edge_attr_out'] if self.use_edge else []) \
             + (['nu_out', 'nu_batch'] if self.use_diffusion else []) \
-            + (['hyperedge_out'] if self.use_hyperedge else [])
+            + (['hyperedge_out'] if self.use_hyperedge else []) \
+            + (['u_out'] if self.use_classification else [])
 
     def forward(self, x: Tensor, edge_index: Tensor, edge_attr: Tensor, u: Tensor, batch: Tensor,
                 x_fw_mask: Optional[Tensor] = None, edge_fw_mask: Optional[Tensor] = None,
                 hyperedge_index: Optional[Tensor] = None, hyperedge_index_batch: Optional[Tensor] = None,
                 num_sampling_steps: Optional[Tensor] = None, noise: Optional[Tensor] = None) -> Tuple[Tensor, ...]:
-        edge_attr_out, nu_out, nu_batch, hyperedge_out, _ = self.model(
+        edge_attr_out, nu_out, nu_batch, hyperedge_out, _, u_out = self.model(
             x, edge_index, edge_attr, u, batch, x_fw_mask, edge_fw_mask,
             hyperedge_index=hyperedge_index, hyperedge_index_batch=hyperedge_index_batch,
             train_mode=False, noise=noise, num_sampling_steps=num_sampling_steps)
         return tuple(t for t, used in ((edge_attr_out, self.use_edge), (nu_out, self.use_diffusion),
-                                       (nu_batch, self.use_diffusion), (hyperedge_out, self.use_hyperedge)) if used)
+                                       (nu_batch, self.use_diffusion), (hyperedge_out, self.use_hyperedge),
+                                       (u_out, self.use_classification)) if used)
 
     def example_inputs(self, data, num_sampling_steps: int, noise_as_input: bool) -> Dict[str, Tensor]:
         r"""Build the model inputs from a batch of the `VyPERDataset`.
