@@ -7,7 +7,6 @@ from torch_geometric.utils import scatter
 from typing import Optional
 
 from .mlp import Mlp
-from .attention import split_last
 from VyPER.utils import softmax
 
 
@@ -18,12 +17,6 @@ class ClassAttentionBlock(nn.Module):
     Tokens are not padded into a dense batch. As each event has a single
     query, the attention is computed per object token and normalised
     within each event, which supports ONNX export with data-dependent sizes.
-
-    The normalised object tokens are conditioned on the event token: they are
-    modulated by a shift and a scale predicted from the event token (as adaLN
-    in DiT), so the keys and values depend on what the event token has gathered
-    in the previous blocks. The modulation is initialised to zero, so a freshly
-    initialised block attends over the unmodulated tokens.
 
     Args:
         d_embed (int): embedding dimension.
@@ -52,11 +45,6 @@ class ClassAttentionBlock(nn.Module):
                        depth=0,
                        activation=activation,
                        dropout=dropout)
-
-        # Conditioning of the object tokens on the event token, initialised to zero
-        self.token_modulation = nn.Sequential(nn.SiLU(), nn.Linear(d_embed, 2 * d_embed))
-        nn.init.zeros_(self.token_modulation[-1].weight)
-        nn.init.zeros_(self.token_modulation[-1].bias)
 
         # Supported by `_attention`
         assert self.attn._qkv_same_embed_dim and self.attn.bias_k is None \
@@ -98,9 +86,7 @@ class ClassAttentionBlock(nn.Module):
             kv (torch.Tensor): object tokens of shape [T, `d_embed`].
             index (torch.Tensor): event of each object token, of shape [T].
         """
-        shift, scale = split_last(self.token_modulation(q), 2)
-        kv_norm = self.norm_kv(kv) * (1 + scale.index_select(0, index)) + shift.index_select(0, index)
-        q = q + self._attention(self.norm_q(q), kv_norm, index)
+        q = q + self._attention(self.norm_q(q), self.norm_kv(kv), index)
         q = q + self.mlp(self.norm_mlp(q))
         return q
 
@@ -111,9 +97,8 @@ class EventClassification(nn.Module):
     Every node, edge, neutrino and hyperedge embedding of an event becomes
     a token (with a learned type embedding); each event has one edge token
     per directed edge. An event token, initialised from the
-    global embedding :obj:`u`, attends over these tokens, conditioned on the
-    event token, through a stack of :class:`ClassAttentionBlock` and is finally
-    projected to class logits.
+    global embedding :obj:`u`, attends over these tokens through a stack of
+    :class:`ClassAttentionBlock` and is finally projected to class logits.
 
     Args:
         d_model (int): dimension of the node, edge, global and neutrino embeddings.

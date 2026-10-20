@@ -53,11 +53,9 @@ def _embeddings(batch):
                 hyperedge_attr=hyperedge_attr, hyperedge_batch=batch.hyperedge_index_batch)
 
 
-def _class_attention_block(fill=True):
+def _class_attention_block():
     from VyPER.models.classification import ClassAttentionBlock
-    torch.manual_seed(0)
-    model = ClassAttentionBlock(d_embed=D_MODEL, d_feedforward=16, nheads=2, dropout=0.)
-    return (_fill(model) if fill else model).eval()
+    return _fill(ClassAttentionBlock(d_embed=D_MODEL, d_feedforward=16, nheads=2, dropout=0.)).eval()
 
 
 EVENT_CLASSIFICATION_SETTINGS = {
@@ -83,42 +81,22 @@ def test_ClassAttentionBlock(example_batch, expected_ClassAttentionBlock_output)
     torch.testing.assert_close(out, expected_ClassAttentionBlock_output, rtol=RTOL, atol=ATOL)
 
 
-def _reference_class_attention(model, q, kv, index, condition=True):
-    r"""Reference :class:`ClassAttentionBlock`: the (conditioned) object tokens are
-    padded per event and attended over with `nn.MultiheadAttention` and a key padding mask."""
-    from torch_geometric.utils import to_dense_batch
-
-    kv = model.norm_kv(kv)
-    if condition:
-        shift, scale = model.token_modulation(q).chunk(2, dim=-1)
-        kv = kv * (1 + scale[index]) + shift[index]
-    dense, is_real = to_dense_batch(kv, index)
-    attn = model.attn(model.norm_q(q).unsqueeze(1), dense, dense,
-                      key_padding_mask=~is_real, need_weights=False)[0].squeeze(1)
-    ref = q + attn
-    return ref + model.mlp(model.norm_mlp(ref))
-
-
 @torch.no_grad
 def test_ClassAttentionBlock_matches_MultiheadAttention(example_batch):
+    from torch_geometric.utils import to_dense_batch
+
     model = _class_attention_block()
     emb = _embeddings(example_batch)
     q, kv, index = emb['u'], emb['x'], emb['batch']
 
-    torch.testing.assert_close(model(q, kv, index), _reference_class_attention(model, q, kv, index),
-                               rtol=RTOL, atol=ATOL)
+    # Reference: tokens padded per event and `nn.MultiheadAttention` with a key padding mask
+    dense, is_real = to_dense_batch(model.norm_kv(kv), index)
+    attn = model.attn(model.norm_q(q).unsqueeze(1), dense, dense,
+                      key_padding_mask=~is_real, need_weights=False)[0].squeeze(1)
+    ref = q + attn
+    ref = ref + model.mlp(model.norm_mlp(ref))
 
-
-@torch.no_grad
-def test_ClassAttentionBlock_conditioning_starts_at_zero(example_batch):
-    # The modulation is initialised to zero, so a freshly initialised block
-    # attends over the unmodulated object tokens
-    model = _class_attention_block(fill=False)
-    emb = _embeddings(example_batch)
-    q, kv, index = emb['u'], emb['x'], emb['batch']
-
-    torch.testing.assert_close(model(q, kv, index), _reference_class_attention(model, q, kv, index, condition=False),
-                               rtol=RTOL, atol=ATOL)
+    torch.testing.assert_close(model(q, kv, index), ref, rtol=RTOL, atol=ATOL)
 
 
 @pytest.mark.parametrize('setting', EVENT_CLASSIFICATION_SETTINGS)
